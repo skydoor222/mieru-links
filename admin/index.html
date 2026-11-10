@@ -27,15 +27,38 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
-header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
-.top{display:flex;align-items:center;gap:12px;padding:12px 0 4px;flex-wrap:wrap}
-.top h1{font-size:17px;margin:0}
-.top .upd{color:var(--muted);font-size:12px;margin-left:auto}
-nav{display:flex;gap:4px;overflow-x:auto}
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);height:52px;display:flex;align-items:center;gap:10px;padding:0 16px}
+header h1{font-size:16px;margin:0}
+header .upd{color:var(--muted);font-size:12px;margin-left:auto}
+.burger{border:0;background:none;color:var(--ink);width:36px;height:36px;border-radius:8px;cursor:pointer;display:grid;place-items:center;margin-left:-6px}
+.burger:hover{background:var(--bg)}
+.layout{display:flex;min-height:calc(100vh - 52px)}
+aside{width:250px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:12px 8px;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+aside .lbl{font-size:11px;color:var(--muted);padding:12px 10px 4px}
+aside a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none}
+aside a:hover{background:var(--bg)}
+aside a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+aside a .av{width:30px;height:30px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--ink2);flex:none}
+aside a.on .av{background:var(--accent);color:#fff}
+aside a .nm{display:block;font-size:13px;line-height:1.3}
+aside a .hd{display:block;font-size:11px;color:var(--muted);font-weight:400}
+aside a .dot{width:8px;height:8px;border-radius:50%;margin-left:auto;flex:none}
+.scrim{display:none}
+body.noside aside{display:none}
+@media (max-width:900px){
+  aside{position:fixed;left:0;top:52px;z-index:30;transform:translateX(-100%);transition:transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  body.open aside{transform:none}
+  body.open .scrim{display:block;position:fixed;inset:52px 0 0 0;background:rgba(0,0,0,.35);z-index:25}
+  body.noside aside{display:block}
+}
+.content{flex:1;min-width:0;padding:20px 24px 60px;max-width:1200px}
+@media (max-width:900px){.content{padding:16px 16px 60px}}
+.ahead{display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
+.ahead .av{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:700;flex:none}
+.ahead h2{font-size:20px;margin:0}
+nav.sub{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin:8px 0 16px;position:sticky;top:52px;background:var(--bg);z-index:10}
 nav button{border:0;background:none;color:var(--ink2);padding:10px 14px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
-main.wrap{padding-top:20px;padding-bottom:60px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
 .card h2{font-size:16px;margin:0 0 2px}
@@ -94,64 +117,95 @@ h3.sec{font-size:14px;margin:0 0 10px}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <div class="top"><h1>リール工房 管理</h1><span class="upd" id="upd"></span></div>
-  <nav role="tablist">
-    <button role="tab" data-tab="accounts" aria-selected="true">アカウント</button>
-    <button role="tab" data-tab="videos" aria-selected="false">動画</button>
-    <button role="tab" data-tab="analysis" aria-selected="false">分析</button>
-  </nav>
-</div></header>
-<main class="wrap" id="main"><div class="empty">読み込み中…</div></main>
+<header>
+  <button class="burger" id="burger" aria-label="メニュー"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button>
+  <h1>リール工房 管理</h1><span class="upd" id="upd"></span>
+</header>
+<div class="layout">
+  <aside id="side"></aside><div class="scrim" id="scrim"></div>
+  <main class="content" id="main"><div class="empty">読み込み中…</div></main>
+</div>
 <script>
 const PH={idea:'案',approved:'承認',rendered:'描画',passed:'合格',queued:'公開待ち',reserved:'予約',publishing:'公開中',published:'公開',measured:'計測済み',dropped:'取りやめ',blocked:'止まり',hold:'保留'};
 const SVC={instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'};
 const PSTATE={ok:['good','動いている'],ready:['warn','準備中'],private:['warn','非公開で出る'],connect:['warn','つなぐ前'],off:['off','使わない'],error:['bad','エラー']};
 const VSTATE={done:['good','公開'],publishing:['info','公開中'],waiting:['warn','待ち'],failed:['bad','失敗'],none:['off','—'],off:['off','—']};
-let D=null,tab='accounts',vf={acc:'',st:'',q:'',sort:'date'};
+let D=null,route={slug:'',tab:'overview'},vf={st:'',q:'',sort:'date'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=x=>x==null?'—':Number(x).toLocaleString('ja-JP');
 const t=s=>{if(!s)return'—';const m=s.match(/(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d)/);return m?`${+m[2]}/${+m[3]} ${m[4]}`:s};
 const chip=(k,label)=>`<span class="chip s-${k}">${esc(label)}</span>`;
 function stChip(state){const k={measured:'good',published:'good',publishing:'info',queued:'info',reserved:'info',passed:'info',dropped:'off',blocked:'bad',hold:'warn'}[state]||'off';return chip(k,PH[state]||state)}
 function track(v){const i=v.phase;const dead=v.phase==null;let h='';for(let k=0;k<D.phases.length;k++)h+=`<i class="${!dead&&k<=i?'on':''}"></i>`;return `<div class="track ${dead?'dead':''}" title="${esc(PH[v.state]||v.state)}">${h}</div>`}
+const initial=a=>esc((a.name||a.slug).trim().charAt(0).toUpperCase());
+const health=a=>a.problem?'var(--bad)':a.status!=='active'?'var(--off)':(a.platforms.instagram||{}).state==='ok'?'var(--good)':'var(--warn)';
+const href=(slug,tab)=>'#/'+(slug?encodeURIComponent(slug)+(tab&&tab!=='overview'?'/'+tab:''):'');
 
-function accounts(){
-  return `<div class="grid">${D.accounts.map(a=>{
-    const plats=Object.entries(a.platforms).map(([k,p])=>{const [c,l]=PSTATE[p.enabled?p.state:'off']||['off',p.state];
-      const extra=[p.followers!=null?`フォロワー ${n(p.followers)}`:'',p.total!=null&&p.enabled?`${n(p.total)}本`:''].filter(Boolean).join('・');
-      return `<div class="plat"><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${SVC[k]}</a>`:SVC[k]}</b>${chip(c,l)}<span class="sub">${esc(extra)}</span>${p.todo?`<span class="todo">${esc(p.todo)}</span>`:''}</div>`}).join('');
-    const ph=D.phases.map(p=>`<div class="${a.counts[p]?'':'zero'}"><span>${a.counts[p]||0}</span>${PH[p]}</div>`).join('');
-    const other=['dropped','blocked','hold','publishing'].filter(s=>a.counts[s]).map(s=>`${PH[s]} ${a.counts[s]}`).join('・');
-    const st=a.status==='active'?chip('good','稼働中'):chip('off','一時停止');
-    const L=a.launch||{};
-    return `<section class="card">
-      <h2>${esc(a.name)}</h2>
-      <div class="sub">${a.handle?'@'+esc(a.handle):''} ${st} ${a.setup==='draft'?chip('warn','準備中'):''} ${L.total?`<span class="sub">立ち上げ ${L.done}/${L.total}</span>`:''}</div>
-      <p class="concept">${esc(a.concept)}</p><button class="more">続きを読む</button>
-      <div class="plats">${plats}</div>
-      <div class="stats">
-        <div class="stat"><div class="v">${n(a.analysis.kpi.views_7d)}</div><div class="k">7日の再生</div></div>
-        <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の中央値</div></div>
-        <div class="stat"><div class="v">${a.stock??'—'}<span class="sub">/${a.stock_target??'—'}</span></div><div class="k">公開待ちの在庫</div></div>
-      </div>
-      <div class="phases">${ph}</div>
-      ${other?`<div class="sub" style="margin-top:6px">${esc(other)}</div>`:''}
-      ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
-    </section>`}).join('')}</div>`;
+function sidebar(){
+  return `<a href="${href('')}" class="${route.slug?'':'on'}"><span class="av">全</span><span><span class="nm">全体</span><span class="hd">${D.accounts.length}アカウント</span></span></a>
+  <div class="lbl">アカウント</div>
+  ${D.accounts.map(a=>`<a href="${href(a.slug,route.tab)}" class="${route.slug===a.slug?'on':''}"><span class="av">${initial(a)}</span><span><span class="nm">${esc(a.name)}</span><span class="hd">${a.handle?'@'+esc(a.handle):''}</span></span><span class="dot" style="background:${health(a)}" title="${a.problem?'要対応':a.status==='active'?'稼働中':'一時停止'}"></span></a>`).join('')}`;
+}
+function plats(a){
+  return Object.entries(a.platforms).map(([k,p])=>{const [c,l]=PSTATE[p.enabled?p.state:'off']||['off',p.state];
+    const extra=[p.followers!=null?`フォロワー ${n(p.followers)}`:'',p.total!=null&&p.enabled?`${n(p.total)}本`:''].filter(Boolean).join('・');
+    return `<div class="plat"><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${SVC[k]}</a>`:SVC[k]}</b>${chip(c,l)}<span class="sub">${esc(extra)}</span>${p.todo?`<span class="todo">${esc(p.todo)}</span>`:''}</div>`}).join('');
+}
+function stats(a){
+  return `<div class="stats">
+    <div class="stat"><div class="v">${n(a.analysis.kpi.views_7d)}</div><div class="k">7日の再生</div></div>
+    <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の中央値</div></div>
+    <div class="stat"><div class="v">${a.stock??'—'}<span class="sub">/${a.stock_target??'—'}</span></div><div class="k">公開待ちの在庫</div></div>
+  </div>`;
+}
+function phases(a){
+  const ph=D.phases.map(p=>`<div class="${a.counts[p]?'':'zero'}"><span>${a.counts[p]||0}</span>${PH[p]}</div>`).join('');
+  const other=['dropped','blocked','hold','publishing'].filter(s=>a.counts[s]).map(s=>`${PH[s]} ${a.counts[s]}`).join('・');
+  return `<div class="phases">${ph}</div>${other?`<div class="sub" style="margin-top:6px">${esc(other)}</div>`:''}`;
+}
+const stChips=a=>`${a.status==='active'?chip('good','稼働中'):chip('off','一時停止')} ${a.setup==='draft'?chip('warn','準備中'):''}`;
+
+// 全体：アカウントのカード。押すとそのアカウントのページへ
+function home(){
+  return `<h2 style="font-size:18px;margin:0 0 14px">全体</h2><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
+    <h2><a href="${href(a.slug)}">${esc(a.name)}</a></h2>
+    <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
+    <div class="plats">${plats(a)}</div>${stats(a)}${phases(a)}
+    ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
+    <div style="margin-top:12px;display:flex;gap:12px;font-size:13px"><a href="${href(a.slug)}">概要</a><a href="${href(a.slug,'videos')}">動画 ${a.videos.length}本</a><a href="${href(a.slug,'analysis')}">分析</a></div>
+  </section>`}).join('')}</div>`;
 }
 
-function allVideos(){return D.accounts.flatMap(a=>a.videos.map(v=>({...v,acc:a})))}
-function videos(){
-  const all=allVideos();
+// アカウントのページ
+function accountPage(a){
+  const tabs=[['overview','概要'],['videos',`動画（${a.videos.length}）`],['analysis','分析']];
+  const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):overview(a);
+  return `<div class="ahead"><div class="av">${initial(a)}</div><div><h2>${esc(a.name)}</h2>
+    <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)}</div></div></div>
+  <nav class="sub" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${route.tab===k}">${l}</button>`).join('')}</nav>${body}`;
+}
+function overview(a){
+  const L=a.launch||{};
+  const steps=(L.steps||[]).map(x=>`<div class="plat">${x.state==='done'?chip('good','済み'):chip('warn','まだ')}<span>${esc(x.label)}</span><span class="sub">${esc(x.who||'')}</span></div>`).join('');
+  return `<div class="two">
+    <section class="card"><h3 class="sec">概要</h3><p style="margin:0;color:var(--ink2);font-size:13px">${esc(a.concept)}</p>
+      <div class="sub" style="margin-top:10px">投稿枠 ${a.slots.map(esc).join('・')||'—'}・1日 ${a.max_per_day??'—'}本</div>
+      ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}</section>
+    <section class="card"><h3 class="sec">媒体</h3><div class="plats" style="margin:0">${plats(a)}</div></section>
+  </div>
+  <section class="card" style="margin-top:16px"><h3 class="sec">制作の状況</h3>${stats(a)}${phases(a)}</section>
+  ${steps?`<section class="card" style="margin-top:16px"><h3 class="sec">立ち上げ ${L.done}/${L.total}</h3><div class="plats" style="margin:0">${steps}</div></section>`:''}`;
+}
+function videos(a){
+  const all=a.videos;
   const states=[...new Set(all.map(v=>v.state))].sort((x,y)=>(D.phases.indexOf(x)+100*(D.phases.indexOf(x)<0))-(D.phases.indexOf(y)+100*(D.phases.indexOf(y)<0)));
-  let list=all.filter(v=>(!vf.acc||v.acc.slug===vf.acc)&&(!vf.st||v.state===vf.st)&&(!vf.q||(v.title+v.id).toLowerCase().includes(vf.q.toLowerCase())));
+  let list=all.filter(v=>(!vf.st||v.state===vf.st)&&(!vf.q||(v.title+v.id).toLowerCase().includes(vf.q.toLowerCase())));
   const key=v=>v.published_at||v.scheduled_at||v.updated_at||'';
   const S={date:(a,b)=>key(b).localeCompare(key(a)),views:(a,b)=>((b.metrics||{}).views??-1)-((a.metrics||{}).views??-1),v72:(a,b)=>((b.metrics||{}).views_72h??-1)-((a.metrics||{}).views_72h??-1),phase:(a,b)=>(a.phase??-1)-(b.phase??-1)};
   list.sort(S[vf.sort]||S.date);
   const side=(o)=>{const [c,l]=VSTATE[o.state]||['off',o.state];const lab=o.state==='done'&&o.privacy&&o.privacy!=='public'?'非公開':l;return o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab)};
   const rows=list.map(v=>{const m=v.metrics||{};return `<tr>
-    <td class="ttl">${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.acc.name)}・${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
+    <td class="ttl">${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
     <td>${stChip(v.state)}${track(v)}</td>
     <td class="num">${t(v.published_at||v.scheduled_at)}<div class="sub">${v.published_at?'公開':v.scheduled_at?'予定':''}</div></td>
     <td>${side(v.instagram)}</td><td>${side(v.youtube)}</td><td>${side(v.tiktok)}</td>
@@ -159,8 +213,7 @@ function videos(){
     <td class="num">${n(m.likes)}</td><td class="num">${n(m.saved)}</td><td class="num">${m.skip_rate==null?'—':m.skip_rate+'%'}</td><td class="num">${m.avg_watch_s==null?'—':m.avg_watch_s+'秒'}</td>
   </tr>`}).join('');
   return `<div class="filters">
-    <select id="f-acc"><option value="">すべてのアカウント</option>${D.accounts.map(a=>`<option value="${esc(a.slug)}" ${vf.acc===a.slug?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
-    <select id="f-st"><option value="">すべての段階</option>${states.map(s=>`<option value="${esc(s)}" ${vf.st===s?'selected':''}>${esc(PH[s]||s)}</option>`).join('')}</select>
+    <select id="f-st"><option value="">すべての段階</option>${states.map(s=>`<option value="${esc(s)}" ${vf.st===s?'selected':''}>${esc(PH[s]||s)}（${all.filter(v=>v.state===s).length}）</option>`).join('')}</select>
     <select id="f-sort">${[['date','新しい順'],['views','再生が多い順'],['v72','72時間の再生順'],['phase','段階順']].map(([k,l])=>`<option value="${k}" ${vf.sort===k?'selected':''}>${l}</option>`).join('')}</select>
     <input type="search" id="f-q" placeholder="タイトル・IDで探す" value="${esc(vf.q)}">
   </div>
@@ -194,38 +247,45 @@ function md(s){
   }
   return h+(ul?'</ul>':'');
 }
-function analysis(){
-  return D.accounts.map(a=>{const A=a.analysis,k=A.kpi||{};
-    const ch=k.views_7d!=null&&k.views_prev7d?((k.views_7d/k.views_prev7d-1)*100).toFixed(0):null;
-    const mx=Math.max(1,...A.directions.map(d=>d.median));
-    const pub=a.videos.filter(v=>v.metrics&&(v.metrics.views_72h||v.metrics.views_24h)!=null&&!v.trial);
-    const top=[...pub].sort((x,y)=>(y.metrics.views_72h??y.metrics.views_24h)-(x.metrics.views_72h??x.metrics.views_24h)).slice(0,5);
-    const mtop=Math.max(1,...top.map(v=>v.metrics.views_72h??v.metrics.views_24h));
-    return `<section class="card" style="margin-bottom:16px">
-      <h2>${esc(a.name)}</h2><div class="sub">集計 ${t(A.updated_at)}</div>
-      <div class="akpi">
-        <div class="stat"><div class="v">${n(k.views_7d)}</div><div class="k">7日の再生${ch!=null?`（前の7日比 ${ch>0?'+':''}${ch}%）`:''}</div></div>
-        <div class="stat"><div class="v">${n(k.views_28d)}</div><div class="k">28日の再生</div></div>
-        <div class="stat"><div class="v">${n(k.views_48h)}</div><div class="k">直近48時間</div></div>
-        <div class="stat"><div class="v">${k.nonfollower_share==null?'—':Math.round(k.nonfollower_share*100)+'%'}</div><div class="k">フォロワー以外の再生</div></div>
-        <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の再生の中央値</div></div>
-      </div>
-      ${A.daily.length?`<h3 class="sec">日ごとの再生（Instagram）</h3>${lineChart(A.daily)}`:''}
-      ${pub.length?`<div class="two" style="margin-top:16px">
-        <div><h3 class="sec">伸びた動画（72時間、なければ24時間）</h3><div class="bars">${top.map(v=>{const x=v.metrics.views_72h??v.metrics.views_24h;return `<div class="bar" style="grid-template-columns:1fr 80px"><div><div style="font-size:12px">${v.instagram.url?`<a href="${esc(v.instagram.url)}" target="_blank" rel="noopener">${esc(v.title)}</a>`:esc(v.title)}</div><div class="t"><i style="width:${x/mtop*100}%"></i></div></div><div class="n">${n(x)}</div></div>`}).join('')}</div></div>
-        <div><h3 class="sec">方向ごとの中央値</h3><div class="bars">${A.directions.map(d=>`<div class="bar"><span>${esc(d.name)}</span><div class="t"><i style="width:${d.median/mx*100}%"></i></div><span class="n">${n(Math.round(d.median))}（${d.n}本）</span></div>`).join('')}</div></div>
-      </div>`:'<div class="empty">公開した動画の数字はまだありません</div>'}
-      ${A.report_md?`<details style="margin-top:16px"><summary>くわしい分析（機械の集計）</summary><div class="md">${md(A.report_md)}</div></details>`:''}
-    </section>`}).join('');
+function analysis(a){
+  const A=a.analysis,k=A.kpi||{};
+  const ch=k.views_7d!=null&&k.views_prev7d?((k.views_7d/k.views_prev7d-1)*100).toFixed(0):null;
+  const mx=Math.max(1,...A.directions.map(d=>d.median));
+  const pub=a.videos.filter(v=>v.metrics&&(v.metrics.views_72h??v.metrics.views_24h)!=null&&!v.trial);
+  const val=v=>v.metrics.views_72h??v.metrics.views_24h;
+  const top=[...pub].sort((x,y)=>val(y)-val(x)).slice(0,5);
+  const mtop=Math.max(1,...top.map(val));
+  return `<div class="sub" style="margin-bottom:8px">集計 ${t(A.updated_at)}</div>
+    <div class="akpi" style="margin-top:0">
+      <div class="stat"><div class="v">${n(k.views_7d)}</div><div class="k">7日の再生${ch!=null?`（前の7日比 ${ch>0?'+':''}${ch}%）`:''}</div></div>
+      <div class="stat"><div class="v">${n(k.views_28d)}</div><div class="k">28日の再生</div></div>
+      <div class="stat"><div class="v">${n(k.views_48h)}</div><div class="k">直近48時間</div></div>
+      <div class="stat"><div class="v">${k.nonfollower_share==null?'—':Math.round(k.nonfollower_share*100)+'%'}</div><div class="k">フォロワー以外の再生</div></div>
+      <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の再生の中央値</div></div>
+    </div>
+    ${A.daily.length?`<section class="card"><h3 class="sec">日ごとの再生（Instagram）</h3>${lineChart(A.daily)}</section>`:''}
+    ${pub.length?`<div class="two" style="margin-top:16px">
+      <section class="card"><h3 class="sec">伸びた動画（72時間、なければ24時間）</h3><div class="bars">${top.map(v=>`<div class="bar" style="grid-template-columns:1fr 80px"><div><div style="font-size:12px">${v.instagram.url?`<a href="${esc(v.instagram.url)}" target="_blank" rel="noopener">${esc(v.title)}</a>`:esc(v.title)}</div><div class="t"><i style="width:${val(v)/mtop*100}%"></i></div></div><div class="n">${n(val(v))}</div></div>`).join('')}</div></section>
+      <section class="card"><h3 class="sec">方向ごとの中央値</h3><div class="bars">${A.directions.map(d=>`<div class="bar"><span>${esc(d.name)}</span><div class="t"><i style="width:${d.median/mx*100}%"></i></div><span class="n">${n(Math.round(d.median))}（${d.n}本）</span></div>`).join('')}</div></section>
+    </div>`:'<section class="card"><div class="empty">公開した動画の数字はまだありません</div></section>'}
+    ${A.report_md?`<section class="card" style="margin-top:16px"><details><summary>くわしい分析（機械の集計）</summary><div class="md">${md(A.report_md)}</div></details></section>`:''}`;
 }
 
+function parse(){
+  const p=location.hash.replace(/^#\/?/,'').split('/').map(decodeURIComponent);
+  const a=D&&D.accounts.find(x=>x.slug===p[0]);
+  route={slug:a?a.slug:'',tab:['videos','analysis'].includes(p[1])?p[1]:'overview'};
+}
 function render(){
+  parse();
+  const a=D.accounts.find(x=>x.slug===route.slug);
+  document.getElementById('side').innerHTML=sidebar();
   const m=document.getElementById('main');
-  m.innerHTML=tab==='accounts'?accounts():tab==='videos'?videos():analysis();
-  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab));
-  m.querySelectorAll('.more').forEach(b=>{const c=b.previousElementSibling;if(c.scrollHeight<=c.clientHeight+2)b.remove();else b.onclick=()=>{c.classList.toggle('open');b.textContent=c.classList.contains('open')?'閉じる':'続きを読む'}});
+  m.innerHTML=a?accountPage(a):home();
+  document.title=(a?a.name+' | ':'')+'リール工房 管理';
+  m.querySelectorAll('nav.sub button').forEach(b=>b.onclick=()=>{location.hash=href(a.slug,b.dataset.tab)});
   const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
-  on('f-acc','acc');on('f-st','st');on('f-sort','sort');on('f-q','q','input');
+  on('f-st','st');on('f-sort','sort');on('f-q','q','input');
   m.querySelectorAll('.chart').forEach(c=>{
     const pts=JSON.parse(c.dataset.pts),W=+c.dataset.w,L=+c.dataset.l,R=+c.dataset.r,H=+c.dataset.h,T=+c.dataset.t,B=+c.dataset.b,max=+c.dataset.max;
     const svg=c.querySelector('svg'),tip=c.querySelector('.tip'),ch=c.querySelector('.ch'),dot=c.querySelector('.dot');
@@ -236,8 +296,10 @@ function render(){
     svg.onpointermove=move;svg.onpointerleave=()=>{tip.style.display='none';ch.style.display='none';dot.style.display='none'};
   });
 }
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;try{localStorage.setItem('tab',tab)}catch(e){}render()});
-try{tab=localStorage.getItem('tab')||tab}catch(e){}
+const wide=()=>matchMedia('(min-width:901px)').matches;
+document.getElementById('burger').onclick=()=>{if(wide())document.body.classList.toggle('noside');else document.body.classList.toggle('open')};
+document.getElementById('scrim').onclick=()=>document.body.classList.remove('open');
+window.addEventListener('hashchange',()=>{const prev=route.slug;parse();if(prev!==route.slug)vf={st:'',q:'',sort:'date'};document.body.classList.remove('open');render();window.scrollTo(0,0)});
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;document.getElementById('upd').textContent='更新 '+new Date(d.generated_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});render()})
   .catch(()=>{document.getElementById('main').innerHTML='<div class="empty">データを読めませんでした。少し待って開き直してください。</div>'});
 </script>
