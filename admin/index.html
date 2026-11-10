@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>リール工房 管理</title>
+<style>
+:root{
+  --bg:#f6f7f9;--surface:#fff;--ink:#16181d;--ink2:#4a505c;--muted:#7a8190;--line:#e3e6eb;
+  --accent:#2f6fde;--accent-soft:#e6eefc;
+  --good:#1e8a4c;--good-bg:#e5f5ec;--warn:#a86800;--warn-bg:#fdf1dc;--bad:#c23b32;--bad-bg:#fbe7e5;--off:#8a8f99;--off-bg:#eef0f3;
+  --bar:#2f6fde;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111317;--surface:#1a1d23;--ink:#eceef2;--ink2:#b5bac4;--muted:#8a909c;--line:#2c3038;
+  --accent:#6d9ef5;--accent-soft:#1f2a40;
+  --good:#5cc98a;--good-bg:#173022;--warn:#e7ad4c;--warn-bg:#352812;--bad:#f07a70;--bad-bg:#3a1d1b;--off:#8a909c;--off-bg:#24272e;
+  --bar:#6d9ef5;
+}}
+:root[data-theme="dark"]{
+  --bg:#111317;--surface:#1a1d23;--ink:#eceef2;--ink2:#b5bac4;--muted:#8a909c;--line:#2c3038;
+  --accent:#6d9ef5;--accent-soft:#1f2a40;
+  --good:#5cc98a;--good-bg:#173022;--warn:#e7ad4c;--warn-bg:#352812;--bad:#f07a70;--bad-bg:#3a1d1b;--off:#8a909c;--off-bg:#24272e;
+  --bar:#6d9ef5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;gap:12px;padding:12px 0 4px;flex-wrap:wrap}
+.top h1{font-size:17px;margin:0}
+.top .upd{color:var(--muted);font-size:12px;margin-left:auto}
+nav{display:flex;gap:4px;overflow-x:auto}
+nav button{border:0;background:none;color:var(--ink2);padding:10px 14px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+main.wrap{padding-top:20px;padding-bottom:60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{font-size:16px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:12px}
+.concept{color:var(--ink2);font-size:13px;margin:10px 0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.concept.open{-webkit-line-clamp:unset}
+.more{background:none;border:0;color:var(--accent);padding:0;font:inherit;font-size:12px;cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.s-good{color:var(--good);background:var(--good-bg)}.s-warn{color:var(--warn);background:var(--warn-bg)}
+.s-bad{color:var(--bad);background:var(--bad-bg)}.s-off{color:var(--off);background:var(--off-bg)}
+.s-info{color:var(--accent);background:var(--accent-soft)}
+.plats{display:grid;gap:6px;margin:10px 0}
+.plat{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}
+.plat b{min-width:76px;font-weight:600}
+.plat .todo{color:var(--muted);font-size:12px;flex-basis:100%;padding-left:84px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stat{background:var(--bg);border-radius:8px;padding:8px}
+.stat .v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.stat .k{font-size:11px;color:var(--muted)}
+.phases{display:flex;gap:2px;margin-top:12px}
+.phases div{flex:1;text-align:center;font-size:11px;color:var(--muted)}
+.phases div span{display:block;font-size:15px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.phases div.zero span{color:var(--line)}
+.problem{margin-top:10px;font-size:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+select,input[type=search]{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+input[type=search]{flex:1;min-width:180px}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.ttl{min-width:220px}
+.track{display:flex;gap:2px;margin-top:4px}
+.track i{width:14px;height:4px;border-radius:2px;background:var(--line)}
+.track i.on{background:var(--accent)}
+.track.dead i.on{background:var(--off)}
+.count{color:var(--muted);font-size:12px;margin:0 0 8px}
+.akpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0 16px}
+.chart{position:relative;max-width:760px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);display:none}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:90px 1fr 110px;gap:8px;align-items:center;font-size:13px}
+.bar .t{height:10px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--bar);border-radius:0 4px 4px 0}
+.bar .n{color:var(--muted);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+.md{font-size:13px;color:var(--ink2)}
+.md h3{font-size:14px;color:var(--ink);margin:16px 0 4px}.md ul{margin:4px 0;padding-left:18px}.md p{margin:4px 0}
+h3.sec{font-size:14px;margin:0 0 10px}
+.empty{color:var(--muted);padding:24px;text-align:center}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top"><h1>リール工房 管理</h1><span class="upd" id="upd"></span></div>
+  <nav role="tablist">
+    <button role="tab" data-tab="accounts" aria-selected="true">アカウント</button>
+    <button role="tab" data-tab="videos" aria-selected="false">動画</button>
+    <button role="tab" data-tab="analysis" aria-selected="false">分析</button>
+  </nav>
+</div></header>
+<main class="wrap" id="main"><div class="empty">読み込み中…</div></main>
+<script>
+const PH={idea:'案',approved:'承認',rendered:'描画',passed:'合格',queued:'公開待ち',reserved:'予約',publishing:'公開中',published:'公開',measured:'計測済み',dropped:'取りやめ',blocked:'止まり',hold:'保留'};
+const SVC={instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'};
+const PSTATE={ok:['good','動いている'],ready:['warn','準備中'],private:['warn','非公開で出る'],connect:['warn','つなぐ前'],off:['off','使わない'],error:['bad','エラー']};
+const VSTATE={done:['good','公開'],publishing:['info','公開中'],waiting:['warn','待ち'],failed:['bad','失敗'],none:['off','—'],off:['off','—']};
+let D=null,tab='accounts',vf={acc:'',st:'',q:'',sort:'date'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n=x=>x==null?'—':Number(x).toLocaleString('ja-JP');
+const t=s=>{if(!s)return'—';const m=s.match(/(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d)/);return m?`${+m[2]}/${+m[3]} ${m[4]}`:s};
+const chip=(k,label)=>`<span class="chip s-${k}">${esc(label)}</span>`;
+function stChip(state){const k={measured:'good',published:'good',publishing:'info',queued:'info',reserved:'info',passed:'info',dropped:'off',blocked:'bad',hold:'warn'}[state]||'off';return chip(k,PH[state]||state)}
+function track(v){const i=v.phase;const dead=v.phase==null;let h='';for(let k=0;k<D.phases.length;k++)h+=`<i class="${!dead&&k<=i?'on':''}"></i>`;return `<div class="track ${dead?'dead':''}" title="${esc(PH[v.state]||v.state)}">${h}</div>`}
+
+function accounts(){
+  return `<div class="grid">${D.accounts.map(a=>{
+    const plats=Object.entries(a.platforms).map(([k,p])=>{const [c,l]=PSTATE[p.enabled?p.state:'off']||['off',p.state];
+      const extra=[p.followers!=null?`フォロワー ${n(p.followers)}`:'',p.total!=null&&p.enabled?`${n(p.total)}本`:''].filter(Boolean).join('・');
+      return `<div class="plat"><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${SVC[k]}</a>`:SVC[k]}</b>${chip(c,l)}<span class="sub">${esc(extra)}</span>${p.todo?`<span class="todo">${esc(p.todo)}</span>`:''}</div>`}).join('');
+    const ph=D.phases.map(p=>`<div class="${a.counts[p]?'':'zero'}"><span>${a.counts[p]||0}</span>${PH[p]}</div>`).join('');
+    const other=['dropped','blocked','hold','publishing'].filter(s=>a.counts[s]).map(s=>`${PH[s]} ${a.counts[s]}`).join('・');
+    const st=a.status==='active'?chip('good','稼働中'):chip('off','一時停止');
+    const L=a.launch||{};
+    return `<section class="card">
+      <h2>${esc(a.name)}</h2>
+      <div class="sub">${a.handle?'@'+esc(a.handle):''} ${st} ${a.setup==='draft'?chip('warn','準備中'):''} ${L.total?`<span class="sub">立ち上げ ${L.done}/${L.total}</span>`:''}</div>
+      <p class="concept">${esc(a.concept)}</p><button class="more">続きを読む</button>
+      <div class="plats">${plats}</div>
+      <div class="stats">
+        <div class="stat"><div class="v">${n(a.analysis.kpi.views_7d)}</div><div class="k">7日の再生</div></div>
+        <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の中央値</div></div>
+        <div class="stat"><div class="v">${a.stock??'—'}<span class="sub">/${a.stock_target??'—'}</span></div><div class="k">公開待ちの在庫</div></div>
+      </div>
+      <div class="phases">${ph}</div>
+      ${other?`<div class="sub" style="margin-top:6px">${esc(other)}</div>`:''}
+      ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
+    </section>`}).join('')}</div>`;
+}
+
+function allVideos(){return D.accounts.flatMap(a=>a.videos.map(v=>({...v,acc:a})))}
+function videos(){
+  const all=allVideos();
+  const states=[...new Set(all.map(v=>v.state))].sort((x,y)=>(D.phases.indexOf(x)+100*(D.phases.indexOf(x)<0))-(D.phases.indexOf(y)+100*(D.phases.indexOf(y)<0)));
+  let list=all.filter(v=>(!vf.acc||v.acc.slug===vf.acc)&&(!vf.st||v.state===vf.st)&&(!vf.q||(v.title+v.id).toLowerCase().includes(vf.q.toLowerCase())));
+  const key=v=>v.published_at||v.scheduled_at||v.updated_at||'';
+  const S={date:(a,b)=>key(b).localeCompare(key(a)),views:(a,b)=>((b.metrics||{}).views??-1)-((a.metrics||{}).views??-1),v72:(a,b)=>((b.metrics||{}).views_72h??-1)-((a.metrics||{}).views_72h??-1),phase:(a,b)=>(a.phase??-1)-(b.phase??-1)};
+  list.sort(S[vf.sort]||S.date);
+  const side=(o)=>{const [c,l]=VSTATE[o.state]||['off',o.state];const lab=o.state==='done'&&o.privacy&&o.privacy!=='public'?'非公開':l;return o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab)};
+  const rows=list.map(v=>{const m=v.metrics||{};return `<tr>
+    <td class="ttl">${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.acc.name)}・${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
+    <td>${stChip(v.state)}${track(v)}</td>
+    <td class="num">${t(v.published_at||v.scheduled_at)}<div class="sub">${v.published_at?'公開':v.scheduled_at?'予定':''}</div></td>
+    <td>${side(v.instagram)}</td><td>${side(v.youtube)}</td><td>${side(v.tiktok)}</td>
+    <td class="num">${n(m.views)}</td><td class="num">${n(m.views_24h)}</td><td class="num">${n(m.views_72h)}</td>
+    <td class="num">${n(m.likes)}</td><td class="num">${n(m.saved)}</td><td class="num">${m.skip_rate==null?'—':m.skip_rate+'%'}</td><td class="num">${m.avg_watch_s==null?'—':m.avg_watch_s+'秒'}</td>
+  </tr>`}).join('');
+  return `<div class="filters">
+    <select id="f-acc"><option value="">すべてのアカウント</option>${D.accounts.map(a=>`<option value="${esc(a.slug)}" ${vf.acc===a.slug?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
+    <select id="f-st"><option value="">すべての段階</option>${states.map(s=>`<option value="${esc(s)}" ${vf.st===s?'selected':''}>${esc(PH[s]||s)}</option>`).join('')}</select>
+    <select id="f-sort">${[['date','新しい順'],['views','再生が多い順'],['v72','72時間の再生順'],['phase','段階順']].map(([k,l])=>`<option value="${k}" ${vf.sort===k?'selected':''}>${l}</option>`).join('')}</select>
+    <input type="search" id="f-q" placeholder="タイトル・IDで探す" value="${esc(vf.q)}">
+  </div>
+  <div class="legend">段階：${D.phases.map(p=>PH[p]).join(' → ')}（棒が右まで伸びるほど先へ進んでいる）</div>
+  <p class="count">${list.length}本</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>動画</th><th>段階</th><th class="num">日時</th><th>Instagram</th><th>YouTube</th><th>TikTok</th><th class="num">再生（今）</th><th class="num">24時間</th><th class="num">72時間</th><th class="num">いいね</th><th class="num">保存</th><th class="num">スキップ</th><th class="num">平均視聴</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="13" class="empty">当てはまる動画はありません</td></tr>'}</tbody>
+  </table></div>`;
+}
+
+function lineChart(daily,id){
+  const pts=daily.filter(d=>d[1]!=null);if(pts.length<2)return '<div class="empty">日ごとの数字はまだありません</div>';
+  const W=640,H=220,P={l:52,r:16,t:12,b:26};const raw=Math.max(...pts.map(d=>d[1]))||1;const mag=Math.pow(10,Math.floor(Math.log10(raw)));const step=[1,2,2.5,5,10].map(f=>f*mag).find(s=>raw/s<=4)||mag*10;const max=Math.ceil(raw/step)*step;
+  const x=i=>P.l+(W-P.l-P.r)*i/(pts.length-1),y=v=>H-P.b-(H-P.t-P.b)*v/max;
+  const ticks=[];for(let v=0;v<=max+1e-9;v+=step)ticks.push(v);
+  const grid=ticks.map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P.l-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v>=10000?(v/10000)+'万':n(v)}</text>`).join('');
+  const lab=[0,Math.floor((pts.length-1)/2),pts.length-1].map(i=>`<text x="${x(i)}" y="${H-6}" text-anchor="middle" font-size="11" fill="var(--muted)">${pts[i][0].slice(5).replace('-','/')}</text>`).join('');
+  const path=pts.map((d,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(d[1]).toFixed(1)}`).join('');
+  return `<div class="chart" data-pts='${esc(JSON.stringify(pts))}' data-w="${W}" data-l="${P.l}" data-r="${P.r}" data-max="${max}" data-h="${H}" data-t="${P.t}" data-b="${P.b}">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="日ごとの再生">${grid}${lab}<path d="${path}" fill="none" stroke="var(--bar)" stroke-width="2" stroke-linejoin="round"/><line class="ch" y1="${P.t}" y2="${H-P.b}" stroke="var(--muted)" stroke-dasharray="3 3" style="display:none"/><circle class="dot" r="4" fill="var(--bar)" stroke="var(--surface)" stroke-width="2" style="display:none"/><rect x="${P.l}" y="0" width="${W-P.l-P.r}" height="${H}" fill="transparent" class="hit"/></svg><div class="tip"></div></div>`;
+}
+function md(s){
+  const lines=esc(s).split('\n');let h='',ul=false;
+  for(const l of lines){
+    if(/^#\s/.test(l))continue;
+    if(/^##\s/.test(l)){if(ul){h+='</ul>';ul=false}h+=`<h3>${l.slice(3)}</h3>`;continue}
+    if(/^-\s/.test(l)){if(!ul){h+='<ul>';ul=true}h+=`<li>${l.slice(2)}</li>`;continue}
+    if(ul){h+='</ul>';ul=false}
+    if(l.trim())h+=`<p>${l}</p>`;
+  }
+  return h+(ul?'</ul>':'');
+}
+function analysis(){
+  return D.accounts.map(a=>{const A=a.analysis,k=A.kpi||{};
+    const ch=k.views_7d!=null&&k.views_prev7d?((k.views_7d/k.views_prev7d-1)*100).toFixed(0):null;
+    const mx=Math.max(1,...A.directions.map(d=>d.median));
+    const pub=a.videos.filter(v=>v.metrics&&(v.metrics.views_72h||v.metrics.views_24h)!=null&&!v.trial);
+    const top=[...pub].sort((x,y)=>(y.metrics.views_72h??y.metrics.views_24h)-(x.metrics.views_72h??x.metrics.views_24h)).slice(0,5);
+    const mtop=Math.max(1,...top.map(v=>v.metrics.views_72h??v.metrics.views_24h));
+    return `<section class="card" style="margin-bottom:16px">
+      <h2>${esc(a.name)}</h2><div class="sub">集計 ${t(A.updated_at)}</div>
+      <div class="akpi">
+        <div class="stat"><div class="v">${n(k.views_7d)}</div><div class="k">7日の再生${ch!=null?`（前の7日比 ${ch>0?'+':''}${ch}%）`:''}</div></div>
+        <div class="stat"><div class="v">${n(k.views_28d)}</div><div class="k">28日の再生</div></div>
+        <div class="stat"><div class="v">${n(k.views_48h)}</div><div class="k">直近48時間</div></div>
+        <div class="stat"><div class="v">${k.nonfollower_share==null?'—':Math.round(k.nonfollower_share*100)+'%'}</div><div class="k">フォロワー以外の再生</div></div>
+        <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の再生の中央値</div></div>
+      </div>
+      ${A.daily.length?`<h3 class="sec">日ごとの再生（Instagram）</h3>${lineChart(A.daily)}`:''}
+      ${pub.length?`<div class="two" style="margin-top:16px">
+        <div><h3 class="sec">伸びた動画（72時間、なければ24時間）</h3><div class="bars">${top.map(v=>{const x=v.metrics.views_72h??v.metrics.views_24h;return `<div class="bar" style="grid-template-columns:1fr 80px"><div><div style="font-size:12px">${v.instagram.url?`<a href="${esc(v.instagram.url)}" target="_blank" rel="noopener">${esc(v.title)}</a>`:esc(v.title)}</div><div class="t"><i style="width:${x/mtop*100}%"></i></div></div><div class="n">${n(x)}</div></div>`}).join('')}</div></div>
+        <div><h3 class="sec">方向ごとの中央値</h3><div class="bars">${A.directions.map(d=>`<div class="bar"><span>${esc(d.name)}</span><div class="t"><i style="width:${d.median/mx*100}%"></i></div><span class="n">${n(Math.round(d.median))}（${d.n}本）</span></div>`).join('')}</div></div>
+      </div>`:'<div class="empty">公開した動画の数字はまだありません</div>'}
+      ${A.report_md?`<details style="margin-top:16px"><summary>くわしい分析（機械の集計）</summary><div class="md">${md(A.report_md)}</div></details>`:''}
+    </section>`}).join('');
+}
+
+function render(){
+  const m=document.getElementById('main');
+  m.innerHTML=tab==='accounts'?accounts():tab==='videos'?videos():analysis();
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab));
+  m.querySelectorAll('.more').forEach(b=>{const c=b.previousElementSibling;if(c.scrollHeight<=c.clientHeight+2)b.remove();else b.onclick=()=>{c.classList.toggle('open');b.textContent=c.classList.contains('open')?'閉じる':'続きを読む'}});
+  const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
+  on('f-acc','acc');on('f-st','st');on('f-sort','sort');on('f-q','q','input');
+  m.querySelectorAll('.chart').forEach(c=>{
+    const pts=JSON.parse(c.dataset.pts),W=+c.dataset.w,L=+c.dataset.l,R=+c.dataset.r,H=+c.dataset.h,T=+c.dataset.t,B=+c.dataset.b,max=+c.dataset.max;
+    const svg=c.querySelector('svg'),tip=c.querySelector('.tip'),ch=c.querySelector('.ch'),dot=c.querySelector('.dot');
+    const move=e=>{const r=svg.getBoundingClientRect();const sx=(e.clientX-r.left)/r.width*W;let i=Math.round((sx-L)/(W-L-R)*(pts.length-1));i=Math.max(0,Math.min(pts.length-1,i));
+      const px=L+(W-L-R)*i/(pts.length-1),py=H-B-(H-T-B)*pts[i][1]/max;
+      ch.setAttribute('x1',px);ch.setAttribute('x2',px);ch.style.display='';dot.setAttribute('cx',px);dot.setAttribute('cy',py);dot.style.display='';
+      tip.style.display='block';tip.style.left=(px/W*r.width)+'px';tip.style.top=(py/H*r.height)+'px';tip.textContent=`${pts[i][0].slice(5).replace('-','/')}　${n(pts[i][1])}回`};
+    svg.onpointermove=move;svg.onpointerleave=()=>{tip.style.display='none';ch.style.display='none';dot.style.display='none'};
+  });
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;try{localStorage.setItem('tab',tab)}catch(e){}render()});
+try{tab=localStorage.getItem('tab')||tab}catch(e){}
+fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;document.getElementById('upd').textContent='更新 '+new Date(d.generated_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});render()})
+  .catch(()=>{document.getElementById('main').innerHTML='<div class="empty">データを読めませんでした。少し待って開き直してください。</div>'});
+</script>
+</body>
+</html>
