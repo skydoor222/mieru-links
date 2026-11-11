@@ -113,6 +113,14 @@ tr:last-child td{border-bottom:0}
 .md h3{font-size:14px;color:var(--ink);margin:16px 0 4px}.md ul{margin:4px 0;padding-left:18px}.md p{margin:4px 0}
 h3.sec{font-size:14px;margin:0 0 10px}
 .empty{color:var(--muted);padding:24px;text-align:center}
+.cs{width:100%;border-collapse:collapse;font-size:13px}
+.cs th,.cs td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+.cs th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.cs tr:last-child td{border-bottom:0}
+.cs .who{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.cs .who b{color:var(--warn);font-weight:600}
+.steps5{display:flex;gap:2px;margin-top:5px}.steps5 i{width:12px;height:4px;border-radius:2px;background:var(--line)}.steps5 i.on{background:var(--good)}
+.mine{display:grid;gap:6px;font-size:13px}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
 </style>
 </head>
@@ -166,9 +174,28 @@ function phases(a){
 }
 const stChips=a=>`${a.status==='active'?chip('good','稼働中'):chip('off','一時停止')} ${a.setup==='draft'?chip('warn','準備中'):''}`;
 
+// アカウント×媒体の作成ステータス
+const CST={none:'bad',created:'warn',connected:'info',private:'warn',live:'good',off:'off'};
+function chCell(c){if(!c)return '—';if(c.stage==='off')return chip('off','使わない');
+  const bar=`<div class="steps5">${[0,1,2,3,4].map(i=>`<i class="${i<=c.step?'on':''}"></i>`).join('')}</div>`;
+  const who=c.who?`<span class="who">${c.who==='持ち主'?'<b>持ち主の番</b>':esc(c.who)+'の番'}：${esc(c.todo)}</span>`:'';
+  return `${chip(CST[c.stage],c.label)}${bar}${who}`}
+function statusTable(list){
+  return `<div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>Instagram</th><th>YouTube</th><th>TikTok</th></tr></thead><tbody>${list.map(a=>`<tr>
+    <td><a href="${href(a.slug)}"><b>${esc(a.name)}</b></a><div class="sub">${a.handle?'@'+esc(a.handle):''}</div></td>
+    ${['instagram','youtube','tiktok'].map(k=>`<td>${chCell((a.channels||{})[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+function ownerTodo(){
+  const L=[];D.accounts.forEach(a=>Object.entries(a.channels||{}).forEach(([k,c])=>{if(c.who==='持ち主')L.push(`${esc(a.name)}：${SVC[k]}`)}));
+  return L.length?`<p class="sub" style="margin:8px 0 0"><b style="color:var(--warn)">持ち主の番 ${L.length}件</b>（作ってログインしておく）：${L.join('・')}</p>`:'';
+}
+
 // 全体：アカウントのカード。押すとそのアカウントのページへ
 function home(){
-  return `<h2 style="font-size:18px;margin:0 0 14px">全体</h2><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
+  return `<h2 style="font-size:18px;margin:0 0 6px">全体</h2>
+  <h3 class="sec" style="margin-top:12px">アカウントの作成状況</h3>
+  <div class="legend" style="margin-bottom:8px">${(D.stages||[]).join(' → ')}</div>
+  ${statusTable(D.accounts)}${ownerTodo()}
+  <h3 class="sec" style="margin-top:24px">アカウント</h3><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
     <h2><a href="${href(a.slug)}">${esc(a.name)}</a></h2>
     <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
     <div class="plats">${plats(a)}</div>${stats(a)}${phases(a)}
@@ -204,7 +231,7 @@ function overview(a){
     <section class="card"><h3 class="sec">概要</h3><p style="margin:0;color:var(--ink2);font-size:13px">${esc(a.concept)}</p>
       <div class="sub" style="margin-top:10px">投稿枠 ${a.slots.map(esc).join('・')||'—'}・1日 ${a.max_per_day??'—'}本</div>
       ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}</section>
-    <section class="card"><h3 class="sec">媒体</h3><div class="plats" style="margin:0">${plats(a)}</div></section>
+    <section class="card"><h3 class="sec">作成状況</h3><div class="mine">${['instagram','youtube','tiktok'].map(k=>`<div><b style="display:inline-block;min-width:84px">${SVC[k]}</b>${chCell((a.channels||{})[k])}</div>`).join('')}</div></section>
   </div>
   <section class="card" style="margin-top:16px"><h3 class="sec">制作の状況</h3>${stats(a)}${phases(a)}</section>
   ${steps?`<section class="card" style="margin-top:16px"><h3 class="sec">立ち上げ ${L.done}/${L.total}</h3><div class="plats" style="margin:0">${steps}</div></section>`:''}`;
