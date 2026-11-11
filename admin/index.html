@@ -144,7 +144,8 @@ const href=(slug,tab)=>'#/'+(slug?encodeURIComponent(slug)+(tab&&tab!=='overview
 function sidebar(){
   return `<a href="${href('')}" class="${route.slug?'':'on'}"><span class="av">全</span><span><span class="nm">全体</span><span class="hd">${D.accounts.length}アカウント</span></span></a>
   <div class="lbl">アカウント</div>
-  ${D.accounts.map(a=>`<a href="${href(a.slug,route.tab)}" class="${route.slug===a.slug?'on':''}"><span class="av">${initial(a)}</span><span><span class="nm">${esc(a.name)}</span><span class="hd">${a.handle?'@'+esc(a.handle):''}</span></span><span class="dot" style="background:${health(a)}" title="${a.problem?'要対応':a.status==='active'?'稼働中':'一時停止'}"></span></a>`).join('')}`;
+  ${D.accounts.map(a=>`<a href="${href(a.slug,route.tab)}" class="${route.slug===a.slug?'on':''}"><span class="av">${initial(a)}</span><span><span class="nm">${esc(a.name)}</span><span class="hd">${a.handle?'@'+esc(a.handle):''}</span></span><span class="dot" style="background:${health(a)}" title="${a.problem?'要対応':a.status==='active'?'稼働中':'一時停止'}"></span></a>`).join('')}
+  ${(D.planned||[]).length?`<div class="lbl">準備中（これから作る）</div>${D.planned.map(p=>`<a href="${href(p.slug)}" class="${route.slug===p.slug?'on':''}"><span class="av">${esc(p.name.charAt(0))}</span><span><span class="nm">${esc(p.name)}</span><span class="hd">${p.platforms.map(k=>SVC[k]).join('・')}</span></span><span class="dot" style="background:var(--off)" title="準備中"></span></a>`).join('')}`:''}`;
 }
 function plats(a){
   return Object.entries(a.platforms).map(([k,p])=>{const [c,l]=PSTATE[p.enabled?p.state:'off']||['off',p.state];
@@ -173,7 +174,19 @@ function home(){
     <div class="plats">${plats(a)}</div>${stats(a)}${phases(a)}
     ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
     <div style="margin-top:12px;display:flex;gap:12px;font-size:13px"><a href="${href(a.slug)}">概要</a><a href="${href(a.slug,'videos')}">動画 ${a.videos.length}本</a><a href="${href(a.slug,'analysis')}">分析</a></div>
-  </section>`}).join('')}</div>`;
+  </section>`}).join('')}</div>
+  ${(D.planned||[]).length?`<h2 style="font-size:16px;margin:24px 0 12px">準備中（これから作る ${D.planned.length}アカウント・${D.planned.reduce((s,p)=>s+p.platforms.length,0)}チャンネル）</h2><div class="grid">${D.planned.map(plannedCard).join('')}</div>`:''}`;
+}
+function plannedCard(p){
+  return `<section class="card"><h2><a href="${href(p.slug)}">${esc(p.name)}</a></h2>
+    <div class="sub">${chip('warn','準備中')} ${p.group?esc(p.group):''}</div>
+    <p class="concept" style="-webkit-line-clamp:unset">${esc(p.concept)}</p>
+    <div class="plats">${['instagram','youtube','tiktok'].map(k=>`<div class="plat"><b>${SVC[k]}</b>${p.platforms.includes(k)?chip('off','まだ作っていない'):chip('off','使わない')}</div>`).join('')}</div>
+  </section>`;
+}
+function plannedPage(p){
+  return `<div class="ahead"><div class="av" style="background:var(--off)">${esc(p.name.charAt(0))}</div><div><h2>${esc(p.name)}</h2><div class="sub">${chip('warn','準備中')} ${p.group?esc(p.group):''}</div></div></div>
+  <div class="two" style="margin-top:16px">${plannedCard(p)}<section class="card"><h3 class="sec">これから</h3><p class="sub" style="margin:0">アカウントを作ってつなぐと、ここに動画・公開状況・分析が出ます。</p></section></div>`;
 }
 
 // アカウントのページ
@@ -273,16 +286,16 @@ function analysis(a){
 
 function parse(){
   const p=location.hash.replace(/^#\/?/,'').split('/').map(decodeURIComponent);
-  const a=D&&D.accounts.find(x=>x.slug===p[0]);
+  const a=D&&(D.accounts.find(x=>x.slug===p[0])||(D.planned||[]).find(x=>x.slug===p[0]));
   route={slug:a?a.slug:'',tab:['videos','analysis'].includes(p[1])?p[1]:'overview'};
 }
 function render(){
   parse();
-  const a=D.accounts.find(x=>x.slug===route.slug);
+  const a=D.accounts.find(x=>x.slug===route.slug),pl=(D.planned||[]).find(x=>x.slug===route.slug);
   document.getElementById('side').innerHTML=sidebar();
   const m=document.getElementById('main');
-  m.innerHTML=a?accountPage(a):home();
-  document.title=(a?a.name+' | ':'')+'リール工房 管理';
+  m.innerHTML=a?accountPage(a):pl?plannedPage(pl):home();
+  document.title=((a||pl)?(a||pl).name+' | ':'')+'リール工房 管理';
   m.querySelectorAll('nav.sub button').forEach(b=>b.onclick=()=>{location.hash=href(a.slug,b.dataset.tab)});
   const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
   on('f-st','st');on('f-sort','sort');on('f-q','q','input');
