@@ -138,7 +138,7 @@ const PH={idea:'案',approved:'承認',rendered:'描画',passed:'合格',queued:
 const SVC={instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'};
 const PSTATE={ok:['good','動いている'],ready:['warn','準備中'],private:['warn','非公開で出る'],connect:['warn','つなぐ前'],off:['off','使わない'],error:['bad','エラー']};
 const VSTATE={done:['good','公開'],publishing:['info','公開中'],waiting:['warn','待ち'],failed:['bad','失敗'],none:['off','—'],off:['off','—']};
-let D=null,route={slug:'',tab:'overview'},vf={st:'',q:'',sort:'date'};
+let D=null,route={slug:'',tab:'overview'},vf={st:'',q:'',sort:'date',old:''};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=x=>x==null?'—':Number(x).toLocaleString('ja-JP');
 const t=s=>{if(!s)return'—';const m=s.match(/(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d)/);return m?`${+m[2]}/${+m[3]} ${m[4]}`:s};
@@ -218,7 +218,7 @@ function plannedPage(p){
 
 // アカウントのページ
 function accountPage(a){
-  const tabs=[['overview','概要'],['videos',`動画（${a.videos.length}）`],['analysis','分析']];
+  const tabs=[['overview','概要'],['videos',`動画（${a.videos.filter(v=>!v.remade_to).length}）`],['analysis','分析']];
   const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):overview(a);
   return `<div class="ahead"><div class="av">${initial(a)}</div><div><h2>${esc(a.name)}</h2>
     <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)}</div></div></div>
@@ -237,18 +237,19 @@ function overview(a){
   ${steps?`<section class="card" style="margin-top:16px"><h3 class="sec">立ち上げ ${L.done}/${L.total}</h3><div class="plats" style="margin:0">${steps}</div></section>`:''}`;
 }
 function videos(a){
-  const all=a.videos;
+  const remade=a.videos.filter(v=>v.remade_to);
+  const all=vf.old?a.videos:a.videos.filter(v=>!v.remade_to);
   const states=[...new Set(all.map(v=>v.state))].sort((x,y)=>(D.phases.indexOf(x)+100*(D.phases.indexOf(x)<0))-(D.phases.indexOf(y)+100*(D.phases.indexOf(y)<0)));
   let list=all.filter(v=>(!vf.st||v.state===vf.st)&&(!vf.q||(v.title+v.id).toLowerCase().includes(vf.q.toLowerCase())));
   const key=v=>v.published_at||v.scheduled_at||v.updated_at||'';
   const S={date:(a,b)=>key(b).localeCompare(key(a)),views:(a,b)=>((b.metrics||{}).views??-1)-((a.metrics||{}).views??-1),v72:(a,b)=>((b.metrics||{}).views_72h??-1)-((a.metrics||{}).views_72h??-1),phase:(a,b)=>(a.phase??-1)-(b.phase??-1)};
   list.sort(S[vf.sort]||S.date);
-  const side=(o)=>{const [c,l]=VSTATE[o.state]||['off',o.state];const lab=o.state==='done'&&o.privacy&&o.privacy!=='public'?'非公開':l;return o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab)};
+  const side=(o,svc)=>{const [c,l]=VSTATE[o.state]||['off',o.state];const hid=o.state==='done'&&((o.privacy&&o.privacy!=='public')||((a.channels||{})[svc]||{}).stage==='private');if(hid)o={...o,privacy:'private'};const lab=hid?'非公開（審査待ち）':l;return o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab)};
   const rows=list.map(v=>{const m=v.metrics||{};return `<tr>
-    <td class="ttl">${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
+    <td class="ttl">${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.remade_to?`<div class="sub">作り直した元（新しいほう：${esc(v.remade_to)}）</div>`:v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
     <td>${stChip(v.state)}${track(v)}</td>
     <td class="num">${t(v.published_at||v.scheduled_at)}<div class="sub">${v.published_at?'公開':v.scheduled_at?'予定':''}</div></td>
-    <td>${side(v.instagram)}</td><td>${side(v.youtube)}</td><td>${side(v.tiktok)}</td>
+    <td>${side(v.instagram,'instagram')}</td><td>${side(v.youtube,'youtube')}</td><td>${side(v.tiktok,'tiktok')}</td>
     <td class="num">${n(m.views)}</td><td class="num">${n(m.views_24h)}</td><td class="num">${n(m.views_72h)}</td>
     <td class="num">${n(m.likes)}</td><td class="num">${n(m.saved)}</td><td class="num">${m.skip_rate==null?'—':m.skip_rate+'%'}</td><td class="num">${m.avg_watch_s==null?'—':m.avg_watch_s+'秒'}</td>
   </tr>`}).join('');
@@ -257,6 +258,7 @@ function videos(a){
     <select id="f-sort">${[['date','新しい順'],['views','再生が多い順'],['v72','72時間の再生順'],['phase','段階順']].map(([k,l])=>`<option value="${k}" ${vf.sort===k?'selected':''}>${l}</option>`).join('')}</select>
     <input type="search" id="f-q" placeholder="タイトル・IDで探す" value="${esc(vf.q)}">
   </div>
+  ${remade.length?`<p class="sub" style="margin:0 0 8px">${vf.old?`作り直した元の ${remade.length}本も出しています。`:`作り直した元の ${remade.length}本は隠しています（新しい id で作り直したので、出ません）。`} <button class="more" id="f-old">${vf.old?'隠す':'表示する'}</button></p>`:''}
   <div class="legend">段階：${D.phases.map(p=>PH[p]).join(' → ')}（棒が右まで伸びるほど先へ進んでいる）</div>
   <p class="count">${list.length}本</p>
   <div class="tablewrap"><table>
@@ -326,6 +328,7 @@ function render(){
   m.querySelectorAll('nav.sub button').forEach(b=>b.onclick=()=>{location.hash=href(a.slug,b.dataset.tab)});
   const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
   on('f-st','st');on('f-sort','sort');on('f-q','q','input');
+  const fo=document.getElementById('f-old');if(fo)fo.onclick=()=>{vf.old=vf.old?'':'1';render()};
   m.querySelectorAll('.chart').forEach(c=>{
     const pts=JSON.parse(c.dataset.pts),W=+c.dataset.w,L=+c.dataset.l,R=+c.dataset.r,H=+c.dataset.h,T=+c.dataset.t,B=+c.dataset.b,max=+c.dataset.max;
     const svg=c.querySelector('svg'),tip=c.querySelector('.tip'),ch=c.querySelector('.ch'),dot=c.querySelector('.dot');
@@ -339,7 +342,7 @@ function render(){
 const wide=()=>matchMedia('(min-width:901px)').matches;
 document.getElementById('burger').onclick=()=>{if(wide())document.body.classList.toggle('noside');else document.body.classList.toggle('open')};
 document.getElementById('scrim').onclick=()=>document.body.classList.remove('open');
-window.addEventListener('hashchange',()=>{const prev=route.slug;parse();if(prev!==route.slug)vf={st:'',q:'',sort:'date'};document.body.classList.remove('open');render();window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{const prev=route.slug;parse();if(prev!==route.slug)vf={st:'',q:'',sort:'date',old:''};document.body.classList.remove('open');render();window.scrollTo(0,0)});
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;document.getElementById('upd').textContent='更新 '+new Date(d.generated_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});render()})
   .catch(()=>{document.getElementById('main').innerHTML='<div class="empty">データを読めませんでした。少し待って開き直してください。</div>'});
 </script>
