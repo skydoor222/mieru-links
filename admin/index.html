@@ -122,19 +122,6 @@ h3.sec{font-size:14px;margin:0 0 10px}
 .steps5{display:flex;gap:2px;margin-top:5px}.steps5 i{width:12px;height:4px;border-radius:2px;background:var(--line)}.steps5 i.on{background:var(--good)}
 .mine{display:grid;gap:6px;font-size:13px}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
-.pst{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:4px 0 12px}
-.pst div{font-size:12px;color:var(--muted);text-align:center;padding-top:6px;border-top:4px solid var(--line)}
-.pst div.done{border-top-color:var(--good)}.pst div.now{border-top-color:var(--accent);color:var(--ink);font-weight:600}
-.trials{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.trial{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
-.trial.chosen{border-color:var(--good);box-shadow:0 0 0 2px var(--good-bg)}
-.trial video{width:100%;aspect-ratio:9/16;max-height:520px;background:#000;border-radius:8px;display:block;object-fit:contain}
-.trial .novid{aspect-ratio:9/16;max-height:520px;display:grid;place-items:center;background:var(--bg);border-radius:8px;color:var(--muted);font-size:12px}
-.trial h4{margin:0;font-size:14px}
-.trial .why{font-size:12px;color:var(--ink2)}
-.trial details summary{font-size:12px;color:var(--accent);cursor:pointer}
-.pick{display:block;text-align:center;font:inherit;font-weight:600;padding:9px;border-radius:8px;background:var(--accent);color:#fff!important;text-decoration:none!important}
-.pick:hover{filter:brightness(1.08)}
 </style>
 </head>
 <body>
@@ -210,8 +197,7 @@ function home(){
   ${statusTable(D.accounts)}${ownerTodo()}
   <h3 class="sec" style="margin-top:24px">アカウント</h3><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
     <h2><a href="${href(a.slug)}">${esc(a.name)}</a></h2>
-    <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${pilotChip(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
-    ${a.pilot&&a.pilot.stage==='choosing'&&!a.pilot.chosen?`<div class="problem"><a href="${href(a.slug)}">試作 ${a.pilot.trials.filter(t=>t.video).length}本を見て型を選ぶ →</a></div>`:''}
+    <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
     <div class="plats">${plats(a)}</div>${stats(a)}${phases(a)}
     ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
     <div style="margin-top:12px;display:flex;gap:12px;font-size:13px"><a href="${href(a.slug)}">概要</a><a href="${href(a.slug,'videos')}">動画 ${a.videos.length}本</a><a href="${href(a.slug,'analysis')}">分析</a></div>
@@ -230,45 +216,18 @@ function plannedPage(p){
   <div class="two" style="margin-top:16px">${plannedCard(p)}<section class="card"><h3 class="sec">これから</h3><p class="sub" style="margin:0">アカウントを作ってつなぐと、ここに動画・公開状況・分析が出ます。</p></section></div>`;
 }
 
-// 新しいアカウントの立ち上げ：調べる → 試作 → 選ぶ → 本番。試作をその場で再生して、持ち主が型を選ぶ
-const PSTAGE=[['research','調べる'],['testing','試作'],['choosing','選ぶ'],['production','本番']];
-const PICK_REPO='skydoor222/mieru-loop';
-function pickUrl(a,t){const title=`試作を選ぶ: ${a.slug} ${t.id}`;
-  const body=`${a.name} は「${t.pattern} ${t.label}」（${t.id}）の型で本番の制作に進めてください。\n\n（管理サイトの「この型にする」から。次の制作の回が読んで、python3 -m loop.pilot choose ${a.slug} ${t.id} を実行します）`;
-  return `https://github.com/${PICK_REPO}/issues/new?labels=pilot-pick&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`}
-function pilotStage(P){const i=PSTAGE.findIndex(x=>x[0]===P.stage);return `<div class="pst">${PSTAGE.map(([k,l],j)=>`<div class="${j<i?'done':j===i?'now':''}">${l}</div>`).join('')}</div>`}
-function pilotChip(a){const P=a.pilot;if(!P||P.stage==='production')return '';const k=P.stage==='choosing'?'warn':'info';return chip(k,P.stage==='choosing'?'試作を選ぶ番':P.stage_ja||P.stage)}
-function pilotSection(a){
-  const P=a.pilot;if(!P)return '';
-  const made=P.trials.filter(t=>t.video).length;
-  const cards=P.trials.map(t=>{const ch=P.chosen===t.id;return `<div class="trial ${ch?'chosen':''}">
-    ${t.video?`<video controls playsinline preload="metadata" src="${esc(t.video)}" ${t.cover?`poster="${esc(t.cover)}"`:''}></video>`:'<div class="novid">まだ描いていません</div>'}
-    <div><span class="chip s-info">型 ${esc(t.pattern)}</span> <b>${esc(t.label)}</b>${ch?' '+chip('good','選んだ型'):''}</div>
-    <h4>${esc(t.title.replace(/／/g,' '))}</h4>
-    <div class="sub">事実確認 ${t.factcheck==='pass'?chip('good','合格'):chip('warn',t.factcheck||'まだ')}　レビュー ${t.review==='pass'?chip('good','合格'):chip('warn',t.review||'まだ')}${t.score!=null?` <span class="sub">平均 ${t.score}</span>`:''}</div>
-    ${t.hook?`<div class="why"><b>つかみ</b>：${esc(t.hook)}</div>`:''}
-    ${t.why?`<details><summary>この型にした根拠</summary><div class="why" style="margin-top:4px">${esc(t.why)}</div></details>`:''}
-    ${P.stage==='choosing'&&t.video&&!P.chosen?`<a class="pick" href="${pickUrl(a,t)}" target="_blank" rel="noopener">この型にする</a>`:''}
-  </div>`}).join('');
-  const lead=P.stage==='choosing'&&!P.chosen?`試作 ${made}本を見比べて、本番で量産する型を1つ選んでください。「この型にする」を押すと GitHub の入力画面が開くので、そのまま「Create」を押せば次の制作の回が本番に切り替えます。`
-    :P.chosen?`選んだ型：${esc(P.chosen)}。この型で本番の制作に進みます。`:esc(P.next||'');
-  return `<section class="card" style="margin-bottom:16px"><h3 class="sec">立ち上げ：${esc(P.stage_ja||'')}</h3>${pilotStage(P)}
-    <p class="sub" style="margin:0 0 12px">${lead}</p>${P.trials.length?`<div class="trials">${cards}</div>`:'<div class="empty">試作はまだありません</div>'}</section>`;
-}
-
 // アカウントのページ
 function accountPage(a){
   const tabs=[['overview','概要'],['videos',`動画（${a.videos.filter(v=>!v.remade_to).length}）`],['analysis','分析']];
   const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):overview(a);
   return `<div class="ahead"><div class="av">${initial(a)}</div><div><h2>${esc(a.name)}</h2>
-    <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)} ${pilotChip(a)}</div></div></div>
+    <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)}</div></div></div>
   <nav class="sub" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${route.tab===k}">${l}</button>`).join('')}</nav>${body}`;
 }
 function overview(a){
   const L=a.launch||{};
-  const pil=pilotSection(a);
   const steps=(L.steps||[]).map(x=>`<div class="plat">${x.state==='done'?chip('good','済み'):chip('warn','まだ')}<span>${esc(x.label)}</span><span class="sub">${esc(x.who||'')}</span></div>`).join('');
-  return `${pil}<div class="two">
+  return `<div class="two">
     <section class="card"><h3 class="sec">概要</h3><p style="margin:0;color:var(--ink2);font-size:13px">${esc(a.concept)}</p>
       <div class="sub" style="margin-top:10px">投稿枠 ${a.slots.map(esc).join('・')||'—'}・1日 ${a.max_per_day??'—'}本</div>
       ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}</section>
