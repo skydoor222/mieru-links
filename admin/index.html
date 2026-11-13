@@ -175,18 +175,19 @@ function phases(a){
 const stChips=a=>`${a.status==='active'?chip('good','稼働中'):chip('off','一時停止')} ${a.setup==='draft'?chip('warn','準備中'):''}`;
 
 // アカウント×媒体の作成ステータス
-const CST={none:'bad',created:'warn',connected:'info',private:'warn',live:'good',off:'off'};
+const CST={none:'bad',created:'warn',connected:'info',private:'warn',live:'good',off:'off',stopped:'bad'};
+const SVC4={...SVC,facebook:'Facebook ページ'};
 function chCell(c){if(!c)return '—';if(c.stage==='off')return chip('off','使わない');
   const bar=`<div class="steps5">${[0,1,2,3,4].map(i=>`<i class="${i<=c.step?'on':''}"></i>`).join('')}</div>`;
-  const who=c.who?`<span class="who">${c.who==='持ち主'?'<b>持ち主の番</b>':esc(c.who)+'の番'}：${esc(c.todo)}</span>`:'';
+  const who=c.who?`<span class="who">${c.who.startsWith('持ち主')?'<b>'+esc(c.who.replace('持ち主','持ち主の番'))+'</b>':esc(c.who)+'の番'}：${esc(c.todo)}</span>`:(c.todo?`<span class="who">${esc(c.todo)}</span>`:'');
   return `${chip(CST[c.stage],c.label)}${bar}${who}`}
 function statusTable(list){
-  return `<div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>Instagram</th><th>YouTube</th><th>TikTok</th></tr></thead><tbody>${list.map(a=>`<tr>
+  return `<div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>Instagram</th><th>YouTube</th><th>TikTok</th><th>Facebook ページ</th></tr></thead><tbody>${list.map(a=>`<tr>
     <td><a href="${href(a.slug)}"><b>${esc(a.name)}</b></a><div class="sub">${a.handle?'@'+esc(a.handle):''}</div></td>
-    ${['instagram','youtube','tiktok'].map(k=>`<td>${chCell((a.channels||{})[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+    ${['instagram','youtube','tiktok','facebook'].map(k=>`<td>${(a.channels||{})[k]?chCell(a.channels[k]):'<span class="sub">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
 function ownerTodo(){
-  const L=[];D.accounts.forEach(a=>Object.entries(a.channels||{}).forEach(([k,c])=>{if(c.who==='持ち主')L.push(`${esc(a.name)}：${SVC[k]}`)}));
-  return L.length?`<p class="sub" style="margin:8px 0 0"><b style="color:var(--warn)">持ち主の番 ${L.length}件</b>（作ってログインしておく）：${L.join('・')}</p>`:'';
+  const L=[];D.accounts.forEach(a=>Object.entries(a.channels||{}).forEach(([k,c])=>{if((c.who||'').startsWith('持ち主'))L.push(`${esc(a.name)}：${SVC4[k]}（${esc(c.label)}）`)}));
+  return L.length?`<p class="sub" style="margin:8px 0 0"><b style="color:var(--warn)">持ち主の番 ${L.length}件</b>：${L.join('・')}</p>`:'';
 }
 
 // 全体：アカウントのカード。押すとそのアカウントのページへ
@@ -195,6 +196,7 @@ function home(){
   <h3 class="sec" style="margin-top:12px">アカウントの作成状況</h3>
   <div class="legend" style="margin-bottom:8px">${(D.stages||[]).join(' → ')}</div>
   ${statusTable(D.accounts)}${ownerTodo()}
+  ${(()=>{const L=D.accounts.flatMap(a=>(a.longform||[]).map(x=>({...x,acc:a})));return L.length?`<h3 class="sec" style="margin-top:24px">長尺（ショート1本⇔長尺1本）</h3><div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>長尺</th><th>状態</th><th>足した根拠</th></tr></thead><tbody>${L.map(x=>`<tr><td><a href="${href(x.acc.slug)}">${esc(x.acc.name)}</a></td><td>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}<div class="sub">${esc(x.id)}</div></td><td>${chip(x.url?'good':'warn',x.state||'試作')}</td><td class="sub">${esc((x.note||'').replace('長尺で足した根拠：',''))}</td></tr>`).join('')}</tbody></table></div>`:''})()}
   <h3 class="sec" style="margin-top:24px">アカウント</h3><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
     <h2><a href="${href(a.slug)}">${esc(a.name)}</a></h2>
     <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
@@ -231,9 +233,10 @@ function overview(a){
     <section class="card"><h3 class="sec">概要</h3><p style="margin:0;color:var(--ink2);font-size:13px">${esc(a.concept)}</p>
       <div class="sub" style="margin-top:10px">投稿枠 ${a.slots.map(esc).join('・')||'—'}・1日 ${a.max_per_day??'—'}本</div>
       ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}</section>
-    <section class="card"><h3 class="sec">作成状況</h3><div class="mine">${['instagram','youtube','tiktok'].map(k=>`<div><b style="display:inline-block;min-width:84px">${SVC[k]}</b>${chCell((a.channels||{})[k])}</div>`).join('')}</div></section>
+    <section class="card"><h3 class="sec">作成状況</h3><div class="mine">${['instagram','youtube','tiktok','facebook'].filter(k=>(a.channels||{})[k]).map(k=>`<div><b style="display:inline-block;min-width:84px">${SVC4[k]}</b>${chCell(a.channels[k])}</div>`).join('')}</div></section>
   </div>
   <section class="card" style="margin-top:16px"><h3 class="sec">制作の状況</h3>${stats(a)}${phases(a)}</section>
+  ${(a.longform||[]).length?`<section class="card" style="margin-top:16px"><h3 class="sec">長尺（YouTube 横長・8〜10分）</h3><div class="mine">${a.longform.map(x=>`<div>${chip(x.url?'good':'warn',x.state||'試作')} <b>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</b> <span class="sub">${esc(x.id)}（もとのショート ${esc(x.short)}）</span><div class="sub">${esc(x.note)}</div></div>`).join('')}</div></section>`:''}
   ${steps?`<section class="card" style="margin-top:16px"><h3 class="sec">立ち上げ ${L.done}/${L.total}</h3><div class="plats" style="margin:0">${steps}</div></section>`:''}`;
 }
 function videos(a){
