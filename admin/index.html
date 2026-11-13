@@ -122,6 +122,19 @@ h3.sec{font-size:14px;margin:0 0 10px}
 .steps5{display:flex;gap:2px;margin-top:5px}.steps5 i{width:12px;height:4px;border-radius:2px;background:var(--line)}.steps5 i.on{background:var(--good)}
 .mine{display:grid;gap:6px;font-size:13px}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
+button.play{font:inherit;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+button.play:hover{border-color:var(--accent)}
+#player{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+#player.on{display:flex}
+#player .pbox{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px;max-width:min(960px,100%);max-height:100%;display:flex;flex-direction:column;gap:8px}
+#player .phead{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:600}
+#player .pclose{font-size:22px;line-height:1;background:none;border:0;color:var(--ink);cursor:pointer}
+#player video{max-width:100%;max-height:calc(100vh - 120px);border-radius:8px;background:#000}
+h4.iday{margin:18px 0 6px;font-size:13px;color:var(--muted)}
+ol.ilog{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line)}
+ol.ilog li{position:relative;margin:0 0 12px;padding-left:4px}
+ol.ilog li::before{content:'';position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+ol.ilog .by{font-size:11px}
 </style>
 </head>
 <body>
@@ -196,7 +209,8 @@ function home(){
   <h3 class="sec" style="margin-top:12px">アカウントの作成状況</h3>
   <div class="legend" style="margin-bottom:8px">${(D.stages||[]).join(' → ')}</div>
   ${statusTable(D.accounts)}${ownerTodo()}
-  ${(()=>{const L=D.accounts.flatMap(a=>(a.longform||[]).map(x=>({...x,acc:a})));return L.length?`<h3 class="sec" style="margin-top:24px">長尺（ショート1本⇔長尺1本）</h3><div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>長尺</th><th>状態</th><th>足した根拠</th></tr></thead><tbody>${L.map(x=>`<tr><td><a href="${href(x.acc.slug)}">${esc(x.acc.name)}</a></td><td>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}<div class="sub">${esc(x.id)}</div></td><td>${chip(x.url?'good':'warn',x.state||'試作')}</td><td class="sub">${esc((x.note||'').replace('長尺で足した根拠：',''))}</td></tr>`).join('')}</tbody></table></div>`:''})()}
+  ${(()=>{const L=D.accounts.flatMap(a=>(a.longform||[]).map(x=>({...x,acc:a})));return L.length?`<h3 class="sec" style="margin-top:24px">長尺（ショート1本⇔長尺1本）</h3><div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>長尺</th><th>状態</th><th>足した根拠</th></tr></thead><tbody>${L.map(x=>`<tr><td><a href="${href(x.acc.slug)}">${esc(x.acc.name)}</a></td><td>${lfPlay(x)}${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}<div class="sub">${esc(x.id)}</div></td><td>${chip(x.url?'good':'warn',x.state||'試作')}</td><td class="sub">${esc((x.note||'').replace('長尺で足した根拠：',''))}</td></tr>`).join('')}</tbody></table></div>`:''})()}
+  ${(()=>{const L=D.accounts.flatMap(a=>(a.improve||[]).map(e=>({...e,acc:a}))).sort((x,y)=>(y.at||'').localeCompare(x.at||'')).slice(0,8);return L.length?`<h3 class="sec" style="margin-top:24px">最近の改善</h3><div class="card">${improveLog(L,true).replace(/<div class="filters">[\s\S]*?<\/div>\s*<p class="sub"[^>]*>[^<]*<\/p><p class="count">[^<]*<\/p>/,'')}<p class="sub" style="margin:4px 0 0">各アカウントの「改善ログ」タブに全部あります。</p></div>`:''})()}
   <h3 class="sec" style="margin-top:24px">アカウント</h3><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
     <h2><a href="${href(a.slug)}">${esc(a.name)}</a></h2>
     <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
@@ -220,8 +234,8 @@ function plannedPage(p){
 
 // アカウントのページ
 function accountPage(a){
-  const tabs=[['overview','概要'],['videos',`動画（${a.videos.filter(v=>!v.remade_to).length}）`],['analysis','分析']];
-  const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):overview(a);
+  const tabs=[['overview','概要'],['videos',`動画（${a.videos.filter(v=>!v.remade_to).length}）`],['analysis','分析'],['improve',`改善ログ（${(a.improve||[]).length}）`]];
+  const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):route.tab==='improve'?improveLog(a.improve||[],false):overview(a);
   return `<div class="ahead"><div class="av">${initial(a)}</div><div><h2>${esc(a.name)}</h2>
     <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)}</div></div></div>
   <nav class="sub" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${route.tab===k}">${l}</button>`).join('')}</nav>${body}`;
@@ -236,8 +250,25 @@ function overview(a){
     <section class="card"><h3 class="sec">作成状況</h3><div class="mine">${['instagram','youtube','tiktok','facebook'].filter(k=>(a.channels||{})[k]).map(k=>`<div><b style="display:inline-block;min-width:84px">${SVC4[k]}</b>${chCell(a.channels[k])}</div>`).join('')}</div></section>
   </div>
   <section class="card" style="margin-top:16px"><h3 class="sec">制作の状況</h3>${stats(a)}${phases(a)}</section>
-  ${(a.longform||[]).length?`<section class="card" style="margin-top:16px"><h3 class="sec">長尺（YouTube 横長・8〜10分）</h3><div class="mine">${a.longform.map(x=>`<div>${chip(x.url?'good':'warn',x.state||'試作')} <b>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</b> <span class="sub">${esc(x.id)}（もとのショート ${esc(x.short)}）</span><div class="sub">${esc(x.note)}</div></div>`).join('')}</div></section>`:''}
+  ${(a.longform||[]).length?`<section class="card" style="margin-top:16px"><h3 class="sec">長尺（YouTube 横長・8〜10分）</h3><div class="mine">${a.longform.map(x=>`<div>${chip(x.url?'good':'warn',x.state||'試作')} ${lfPlay(x)}<b>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</b> <span class="sub">${esc(x.id)}（もとのショート ${esc(x.short)}）</span><div class="sub">${esc(x.note)}</div></div>`).join('')}</div></section>`:''}
   ${steps?`<section class="card" style="margin-top:16px"><h3 class="sec">立ち上げ ${L.done}/${L.total}</h3><div class="plats" style="margin:0">${steps}</div></section>`:''}`;
+}
+const lfPlay=x=>x.preview?`<button class="play" data-src="${esc(x.preview)}" data-poster="${esc(x.poster||'')}" data-title="${esc(x.title)}（長尺）" title="試作を見る">▶ 見る</button> `:'';
+function openPlayer(b){const d=document.getElementById('player');d.querySelector('.ptitle').textContent=b.dataset.title;const vd=d.querySelector('video');vd.poster=b.dataset.poster||'';vd.src=b.dataset.src;d.classList.add('on');vd.play().catch(()=>{})}
+function closePlayer(){const d=document.getElementById('player');const vd=d.querySelector('video');vd.pause();vd.removeAttribute('src');vd.load();d.classList.remove('on')}
+const IK={analysis:['info','分析'],hypothesis:['warn','仮説'],mix:['info','配分'],comment:['off','コメント'],rule:['good','決まり'],reference:['info','参考の型'],effect:['good','効き目'],proposal:['warn','提案']};
+function improveLog(L,withAcc){
+  if(!L.length)return '<div class="card empty">まだ改善の記録はありません。分析・決まりの変更・参考にした型・効き目の判定が出ると、ここに時系列で並びます。</div>';
+  const kinds=[...new Set(L.map(e=>e.kind))];
+  const list=L.filter(e=>!vf.ik||e.kind===vf.ik);
+  let day='',h='';
+  list.forEach(e=>{const d=(e.at||'').slice(0,10);if(d!==day){if(day)h+='</ol>';day=d;h+=`<h4 class="iday">${d.slice(5).replace('-','/')}</h4><ol class="ilog">`}
+    const [c,l]=IK[e.kind]||['off',e.kind];
+    h+=`<li>${chip(c,l)}${withAcc?` <a href="${href(e.acc.slug,'improve')}" class="sub">${esc(e.acc.name)}</a>`:''} <b>${esc(e.title)}</b>${e.result?' '+chip(/残す|効いた|勝/.test(e.result)?'good':/戻す|負/.test(e.result)?'bad':'off','結果：'+e.result):''}
+      ${e.detail&&e.detail!==e.title?`<div class="sub">${esc(e.detail)}</div>`:''}${e.evidence?`<div class="sub">根拠：${esc(e.evidence)}</div>`:''}${e.by?`<div class="sub by">${esc(e.by)}</div>`:''}</li>`});
+  if(day)h+='</ol>';
+  return `<div class="filters"><select id="f-ik"><option value="">すべての種類</option>${kinds.map(k=>`<option value="${k}" ${vf.ik===k?'selected':''}>${(IK[k]||[0,k])[1]}（${L.filter(e=>e.kind===k).length}）</option>`).join('')}</select></div>
+  <p class="sub" style="margin:0 0 8px">分析 → 仮説 → 配分・決まりの変更 → 効き目の判定、の流れで新しい順に並べています。</p><p class="count">${list.length}件</p>${h}`;
 }
 function videos(a){
   const remade=a.videos.filter(v=>v.remade_to);
@@ -249,7 +280,7 @@ function videos(a){
   list.sort(S[vf.sort]||S.date);
   const side=(o,svc)=>{const [c,l]=VSTATE[o.state]||['off',o.state];const hid=o.state==='done'&&((o.privacy&&o.privacy!=='public')||((a.channels||{})[svc]||{}).stage==='private');if(hid)o={...o,privacy:'private'};const lab=hid?'非公開（審査待ち）':l;return o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab)};
   const rows=list.map(v=>{const m=v.metrics||{};return `<tr>
-    <td class="ttl">${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.remade_to?`<div class="sub">作り直した元（新しいほう：${esc(v.remade_to)}）</div>`:v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
+    <td class="ttl">${v.preview?`<button class="play" data-src="${esc(v.preview)}" data-poster="${esc(v.poster||'')}" data-title="${esc(v.title)}" title="公開前の動画を見る">▶ 見る</button> `:''}${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.remade_to?`<div class="sub">作り直した元（新しいほう：${esc(v.remade_to)}）</div>`:v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
     <td>${stChip(v.state)}${track(v)}</td>
     <td class="num">${t(v.published_at||v.scheduled_at)}<div class="sub">${v.published_at?'公開':v.scheduled_at?'予定':''}</div></td>
     <td>${side(v.instagram,'instagram')}</td><td>${side(v.youtube,'youtube')}</td><td>${side(v.tiktok,'tiktok')}</td>
@@ -319,7 +350,7 @@ function analysis(a){
 function parse(){
   const p=location.hash.replace(/^#\/?/,'').split('/').map(decodeURIComponent);
   const a=D&&(D.accounts.find(x=>x.slug===p[0])||(D.planned||[]).find(x=>x.slug===p[0]));
-  route={slug:a?a.slug:'',tab:['videos','analysis'].includes(p[1])?p[1]:'overview'};
+  route={slug:a?a.slug:'',tab:['videos','analysis','improve'].includes(p[1])?p[1]:'overview'};
 }
 function render(){
   parse();
@@ -330,7 +361,8 @@ function render(){
   document.title=((a||pl)?(a||pl).name+' | ':'')+'リール工房 管理';
   m.querySelectorAll('nav.sub button').forEach(b=>b.onclick=()=>{location.hash=href(a.slug,b.dataset.tab)});
   const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
-  on('f-st','st');on('f-sort','sort');on('f-q','q','input');
+  m.querySelectorAll('button.play').forEach(b=>b.onclick=()=>openPlayer(b));
+  on('f-st','st');on('f-ik','ik');on('f-sort','sort');on('f-q','q','input');
   const fo=document.getElementById('f-old');if(fo)fo.onclick=()=>{vf.old=vf.old?'':'1';render()};
   m.querySelectorAll('.chart').forEach(c=>{
     const pts=JSON.parse(c.dataset.pts),W=+c.dataset.w,L=+c.dataset.l,R=+c.dataset.r,H=+c.dataset.h,T=+c.dataset.t,B=+c.dataset.b,max=+c.dataset.max;
@@ -349,5 +381,7 @@ window.addEventListener('hashchange',()=>{const prev=route.slug;parse();if(prev!
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;document.getElementById('upd').textContent='更新 '+new Date(d.generated_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});render()})
   .catch(()=>{document.getElementById('main').innerHTML='<div class="empty">データを読めませんでした。少し待って開き直してください。</div>'});
 </script>
+<div id="player" role="dialog" aria-modal="true" aria-label="動画を見る"><div class="pbox"><div class="phead"><span class="ptitle"></span><button class="pclose" aria-label="閉じる">×</button></div><video controls playsinline preload="metadata"></video><div class="sub">公開前のプレビュー（画質を落としています）</div></div></div>
+<script>document.getElementById('player').onclick=e=>{if(e.target.id==='player'||e.target.classList.contains('pclose'))closePlayer()};addEventListener('keydown',e=>{if(e.key==='Escape')closePlayer()});</script>
 </body>
 </html>
