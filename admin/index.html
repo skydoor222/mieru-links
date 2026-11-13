@@ -135,6 +135,13 @@ ol.ilog{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--
 ol.ilog li{position:relative;margin:0 0 12px;padding-left:4px}
 ol.ilog li::before{content:'';position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
 ol.ilog .by{font-size:11px}
+aside a .av img,.ahead .av img,.av.sm img,.card .av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+aside a .av:has(img),.ahead .av:has(img){background:none}
+a.who{display:inline-flex;align-items:center;gap:8px}
+.av.sm{width:24px;height:24px;border-radius:50%;background:var(--bg);display:inline-grid;place-items:center;font-size:11px;font-weight:700;flex:none;overflow:hidden}
+table.cs td:first-child{min-width:180px}
+table.cs a.who b{white-space:normal}
+h4.grp{margin:14px 0 6px;font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -159,13 +166,14 @@ const chip=(k,label)=>`<span class="chip s-${k}">${esc(label)}</span>`;
 function stChip(state){const k={measured:'good',published:'good',publishing:'info',queued:'info',reserved:'info',passed:'info',dropped:'off',blocked:'bad',hold:'warn'}[state]||'off';return chip(k,PH[state]||state)}
 function track(v){const i=v.phase;const dead=v.phase==null;let h='';for(let k=0;k<D.phases.length;k++)h+=`<i class="${!dead&&k<=i?'on':''}"></i>`;return `<div class="track ${dead?'dead':''}" title="${esc(PH[v.state]||v.state)}">${h}</div>`}
 const initial=a=>esc((a.name||a.slug).trim().charAt(0).toUpperCase());
+const av=a=>a.icon?`<img src="${esc(a.icon)}" alt="">`:initial(a);
+const byGroup=L=>(D.groups||['']).map(g=>[g,L.filter(a=>(a.group||'')===g)]).filter(([g,l])=>l.length);
 const health=a=>a.problem?'var(--bad)':a.status!=='active'?'var(--off)':(a.platforms.instagram||{}).state==='ok'?'var(--good)':'var(--warn)';
 const href=(slug,tab)=>'#/'+(slug?encodeURIComponent(slug)+(tab&&tab!=='overview'?'/'+tab:''):'');
 
 function sidebar(){
   return `<a href="${href('')}" class="${route.slug?'':'on'}"><span class="av">全</span><span><span class="nm">全体</span><span class="hd">${D.accounts.length}アカウント</span></span></a>
-  <div class="lbl">アカウント</div>
-  ${D.accounts.map(a=>`<a href="${href(a.slug,route.tab)}" class="${route.slug===a.slug?'on':''}"><span class="av">${initial(a)}</span><span><span class="nm">${esc(a.name)}</span><span class="hd">${a.handle?'@'+esc(a.handle):''}</span></span><span class="dot" style="background:${health(a)}" title="${a.problem?'要対応':a.status==='active'?'稼働中':'一時停止'}"></span></a>`).join('')}
+  ${byGroup(D.accounts).map(([g,L])=>`<div class="lbl">${esc(g)}</div>`+L.map(a=>`<a href="${href(a.slug,route.tab)}" class="${route.slug===a.slug?'on':''}"><span class="av">${av(a)}</span><span><span class="nm">${esc(a.name)}</span><span class="hd">${a.handle?'@'+esc(a.handle):''}</span></span><span class="dot" style="background:${health(a)}" title="${a.problem?'要対応':a.status==='active'?'稼働中':'一時停止'}"></span></a>`).join('')).join('')}
   ${(D.planned||[]).length?`<div class="lbl">準備中（これから作る）</div>${D.planned.map(p=>`<a href="${href(p.slug)}" class="${route.slug===p.slug?'on':''}"><span class="av">${esc(p.name.charAt(0))}</span><span><span class="nm">${esc(p.name)}</span><span class="hd">${p.platforms.map(k=>SVC[k]).join('・')}</span></span><span class="dot" style="background:var(--off)" title="準備中"></span></a>`).join('')}`:''}`;
 }
 function plats(a){
@@ -196,7 +204,7 @@ function chCell(c){if(!c)return '—';if(c.stage==='off')return chip('off','使�
   return `${chip(CST[c.stage],c.label)}${bar}${who}`}
 function statusTable(list){
   return `<div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>Instagram</th><th>YouTube</th><th>TikTok</th><th>Facebook ページ</th></tr></thead><tbody>${list.map(a=>`<tr>
-    <td><a href="${href(a.slug)}"><b>${esc(a.name)}</b></a><div class="sub">${a.handle?'@'+esc(a.handle):''}</div></td>
+    <td><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span><b>${esc(a.name)}</b></a><div class="sub">${a.handle?'@'+esc(a.handle):''}</div></td>
     ${['instagram','youtube','tiktok','facebook'].map(k=>`<td>${(a.channels||{})[k]?chCell(a.channels[k]):'<span class="sub">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
 function ownerTodo(){
   const L=[];D.accounts.forEach(a=>Object.entries(a.channels||{}).forEach(([k,c])=>{if((c.who||'').startsWith('持ち主'))L.push(`${esc(a.name)}：${SVC4[k]}（${esc(c.label)}）`)}));
@@ -208,16 +216,16 @@ function home(){
   return `<h2 style="font-size:18px;margin:0 0 6px">全体</h2>
   <h3 class="sec" style="margin-top:12px">アカウントの作成状況</h3>
   <div class="legend" style="margin-bottom:8px">${(D.stages||[]).join(' → ')}</div>
-  ${statusTable(D.accounts)}${ownerTodo()}
+  ${byGroup(D.accounts).map(([g,L])=>`<h4 class="grp">${esc(g)}</h4>`+statusTable(L)).join('')}${ownerTodo()}
   ${(()=>{const L=D.accounts.flatMap(a=>(a.longform||[]).map(x=>({...x,acc:a})));return L.length?`<h3 class="sec" style="margin-top:24px">長尺（ショート1本⇔長尺1本）</h3><div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>長尺</th><th>状態</th><th>足した根拠</th></tr></thead><tbody>${L.map(x=>`<tr><td><a href="${href(x.acc.slug)}">${esc(x.acc.name)}</a></td><td>${lfPlay(x)}${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}<div class="sub">${esc(x.id)}</div></td><td>${chip(x.url?'good':'warn',x.state||'試作')}</td><td class="sub">${esc((x.note||'').replace('長尺で足した根拠：',''))}</td></tr>`).join('')}</tbody></table></div>`:''})()}
   ${(()=>{const L=D.accounts.flatMap(a=>(a.improve||[]).map(e=>({...e,acc:a}))).sort((x,y)=>(y.at||'').localeCompare(x.at||'')).slice(0,8);return L.length?`<h3 class="sec" style="margin-top:24px">最近の改善</h3><div class="card">${improveLog(L,true).replace(/<div class="filters">[\s\S]*?<\/div>\s*<p class="sub"[^>]*>[^<]*<\/p><p class="count">[^<]*<\/p>/,'')}<p class="sub" style="margin:4px 0 0">各アカウントの「改善ログ」タブに全部あります。</p></div>`:''})()}
-  <h3 class="sec" style="margin-top:24px">アカウント</h3><div class="grid">${D.accounts.map(a=>{const L=a.launch||{};return `<section class="card">
-    <h2><a href="${href(a.slug)}">${esc(a.name)}</a></h2>
+  <h3 class="sec" style="margin-top:24px">アカウント</h3>${byGroup(D.accounts).map(([g,AL])=>`<h4 class="grp">${esc(g)}</h4><div class="grid">${AL.map(a=>{const L=a.launch||{};return `<section class="card">
+    <h2><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span>${esc(a.name)}</a></h2>
     <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
     <div class="plats">${plats(a)}</div>${stats(a)}${phases(a)}
     ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
     <div style="margin-top:12px;display:flex;gap:12px;font-size:13px"><a href="${href(a.slug)}">概要</a><a href="${href(a.slug,'videos')}">動画 ${a.videos.length}本</a><a href="${href(a.slug,'analysis')}">分析</a></div>
-  </section>`}).join('')}</div>
+  </section>`}).join('')}</div>`).join('')}
   ${(D.planned||[]).length?`<h2 style="font-size:16px;margin:24px 0 12px">準備中（これから作る ${D.planned.length}アカウント・${D.planned.reduce((s,p)=>s+p.platforms.length,0)}チャンネル）</h2><div class="grid">${D.planned.map(plannedCard).join('')}</div>`:''}`;
 }
 function plannedCard(p){
@@ -236,7 +244,7 @@ function plannedPage(p){
 function accountPage(a){
   const tabs=[['overview','概要'],['videos',`動画（${a.videos.filter(v=>!v.remade_to).length}）`],['analysis','分析'],['improve',`改善ログ（${(a.improve||[]).length}）`]];
   const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):route.tab==='improve'?improveLog(a.improve||[],false):overview(a);
-  return `<div class="ahead"><div class="av">${initial(a)}</div><div><h2>${esc(a.name)}</h2>
+  return `<div class="ahead"><div class="av">${av(a)}</div><div><h2>${esc(a.name)}</h2>
     <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)}</div></div></div>
   <nav class="sub" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${route.tab===k}">${l}</button>`).join('')}</nav>${body}`;
 }
