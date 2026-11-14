@@ -142,6 +142,9 @@ a.who{display:inline-flex;align-items:center;gap:8px}
 table.cs td:first-child{min-width:180px}
 table.cs a.who b{white-space:normal}
 h4.grp{margin:14px 0 6px;font-size:13px;color:var(--muted)}
+.vw{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink2);margin-top:2px}
+.pv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.pv .stat{padding:8px 10px}.pv .v{font-size:16px}
 </style>
 </head>
 <body>
@@ -181,10 +184,16 @@ function plats(a){
     const extra=[p.followers!=null?`フォロワー ${n(p.followers)}`:'',p.total!=null&&p.enabled?`${n(p.total)}本`:''].filter(Boolean).join('・');
     return `<div class="plat"><b>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${SVC[k]}</a>`:SVC[k]}</b>${chip(c,l)}<span class="sub">${esc(extra)}</span>${p.todo?`<span class="todo">${esc(p.todo)}</span>`:''}</div>`}).join('');
 }
+const PL=[['instagram','Instagram'],['youtube','YouTube'],['tiktok','TikTok']];
+function platViews(a){const B=a.by_platform||{};return `<div class="pv">${PL.map(([k,l])=>{const b=B[k]||{};const off=((a.channels||{})[k]||{}).stage==='off';
+  return `<div class="stat"><div class="v">${off?'—':b.views==null?(b.connected?'0':'<span class="sub">未接続</span>'):n(b.views)}</div><div class="k">${l}の再生${off?'（使わない）':b.connected||b.views!=null?`（${b.posts||0}本の合計）`:''}</div></div>`}).join('')}</div>`}
+function platTable(a){const B=a.by_platform||{};return `<section class="card" style="margin-top:16px"><h3 class="sec">媒体ごとの再生</h3><div class="tablewrap"><table class="cs"><thead><tr><th>媒体</th><th>状態</th><th class="num">出した本数</th><th class="num">再生の合計</th><th class="num">72時間の中央値</th></tr></thead><tbody>${PL.map(([k,l])=>{const b=B[k]||{},c=(a.channels||{})[k];const off=c&&c.stage==='off';
+  return `<tr><td><b>${l}</b></td><td>${off?chip('off','使わない'):b.connected?chCell(c):chip('off','未接続')+(c?` <span class="sub">${esc(c.label||'')}</span>`:'')}</td><td class="num">${off?'—':n(b.posts)}</td><td class="num">${off?'—':n(b.views)}</td><td class="num">${off?'—':n(b.median_72h==null?null:Math.round(b.median_72h))}</td></tr>`}).join('')}</tbody></table></div>
+  <p class="sub" style="margin:8px 0 0">YouTube・TikTok は Instagram に出たあと自動で出した分（Actions が取る24時間・72時間の数字のうち新しいほう）。長尺（YouTube 横長）はまだ公開していません。</p></section>`}
 function stats(a){
   return `<div class="stats">
-    <div class="stat"><div class="v">${n(a.analysis.kpi.views_7d)}</div><div class="k">7日の再生</div></div>
-    <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の中央値</div></div>
+    <div class="stat"><div class="v">${n(a.analysis.kpi.views_7d)}</div><div class="k">7日の再生（IG）</div></div>
+    <div class="stat"><div class="v">${n(a.median_views_72h==null?null:Math.round(a.median_views_72h))}</div><div class="k">72時間の中央値（IG）</div></div>
     <div class="stat"><div class="v">${a.stock??'—'}<span class="sub">/${a.stock_target??'—'}</span></div><div class="k">公開待ちの在庫</div></div>
   </div>`;
 }
@@ -222,7 +231,7 @@ function home(){
   <h3 class="sec" style="margin-top:24px">アカウント</h3>${byGroup(D.accounts).map(([g,AL])=>`<h4 class="grp">${esc(g)}</h4><div class="grid">${AL.map(a=>{const L=a.launch||{};return `<section class="card">
     <h2><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span>${esc(a.name)}</a></h2>
     <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
-    <div class="plats">${plats(a)}</div>${stats(a)}${phases(a)}
+    <div class="plats">${plats(a)}</div>${stats(a)}${platViews(a)}${phases(a)}
     ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
     <div style="margin-top:12px;display:flex;gap:12px;font-size:13px"><a href="${href(a.slug)}">概要</a><a href="${href(a.slug,'videos')}">動画 ${a.videos.length}本</a><a href="${href(a.slug,'analysis')}">分析</a></div>
   </section>`}).join('')}</div>`).join('')}
@@ -257,7 +266,7 @@ function overview(a){
       ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}</section>
     <section class="card"><h3 class="sec">作成状況</h3><div class="mine">${['instagram','youtube','tiktok','facebook'].filter(k=>(a.channels||{})[k]).map(k=>`<div><b style="display:inline-block;min-width:84px">${SVC4[k]}</b>${chCell(a.channels[k])}</div>`).join('')}</div></section>
   </div>
-  <section class="card" style="margin-top:16px"><h3 class="sec">制作の状況</h3>${stats(a)}${phases(a)}</section>
+  <section class="card" style="margin-top:16px"><h3 class="sec">制作の状況</h3>${stats(a)}${platViews(a)}${phases(a)}</section>
   ${(a.longform||[]).length?`<section class="card" style="margin-top:16px"><h3 class="sec">長尺（YouTube 横長・8〜10分）</h3><div class="mine">${a.longform.map(x=>`<div>${chip(x.url?'good':'warn',x.state||'試作')} ${lfPlay(x)}<b>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}</b> <span class="sub">${esc(x.id)}（もとのショート ${esc(x.short)}）</span><div class="sub">${esc(x.note)}</div></div>`).join('')}</div></section>`:''}
   ${steps?`<section class="card" style="margin-top:16px"><h3 class="sec">立ち上げ ${L.done}/${L.total}</h3><div class="plats" style="margin:0">${steps}</div></section>`:''}`;
 }
@@ -284,27 +293,32 @@ function videos(a){
   const states=[...new Set(all.map(v=>v.state))].sort((x,y)=>(D.phases.indexOf(x)+100*(D.phases.indexOf(x)<0))-(D.phases.indexOf(y)+100*(D.phases.indexOf(y)<0)));
   let list=all.filter(v=>(!vf.st||v.state===vf.st)&&(!vf.q||(v.title+v.id).toLowerCase().includes(vf.q.toLowerCase())));
   const key=v=>v.published_at||v.scheduled_at||v.updated_at||'';
-  const S={date:(a,b)=>key(b).localeCompare(key(a)),views:(a,b)=>((b.metrics||{}).views??-1)-((a.metrics||{}).views??-1),v72:(a,b)=>((b.metrics||{}).views_72h??-1)-((a.metrics||{}).views_72h??-1),phase:(a,b)=>(a.phase??-1)-(b.phase??-1)};
+  const S={date:(a,b)=>key(b).localeCompare(key(a)),views:(a,b)=>(total(b)??-1)-(total(a)??-1),v72:(a,b)=>((b.metrics||{}).views_72h??-1)-((a.metrics||{}).views_72h??-1),phase:(a,b)=>(a.phase??-1)-(b.phase??-1)};
   list.sort(S[vf.sort]||S.date);
-  const side=(o,svc)=>{const [c,l]=VSTATE[o.state]||['off',o.state];const hid=o.state==='done'&&((o.privacy&&o.privacy!=='public')||((a.channels||{})[svc]||{}).stage==='private');if(hid)o={...o,privacy:'private'};const lab=hid?'非公開（審査待ち）':l;return o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab)};
+  const conn=svc=>((a.channels||{})[svc]||{}).stage;
+  const side=(o,svc,views)=>{const st=conn(svc);if(o.state!=='done'&&o.state!=='publishing'&&st&&!['connected','private','live','off'].includes(st))return chip('off','未接続');
+    const [c,l]=VSTATE[o.state]||['off',o.state];const hid=o.state==='done'&&((o.privacy&&o.privacy!=='public')||st==='private');if(hid)o={...o,privacy:'private'};const lab=hid?'非公開（審査待ち）':l;
+    const ch=o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${chip(o.privacy&&o.privacy!=='public'?'warn':c,lab)}</a>`:chip(c,lab);
+    return o.state==='done'?ch+`<div class="vw">${views==null?'—':n(views)+'回'}</div>`:ch};
+  const total=v=>{const xs=[(v.metrics||{}).views,(v.youtube||{}).views,(v.tiktok||{}).views].filter(x=>x!=null);return xs.length?xs.reduce((p,q)=>p+q,0):null};
   const rows=list.map(v=>{const m=v.metrics||{};return `<tr>
     <td class="ttl">${v.preview?`<button class="play" data-src="${esc(v.preview)}" data-poster="${esc(v.poster||'')}" data-title="${esc(v.title)}" title="公開前の動画を見る">▶ 見る</button> `:''}${esc(v.title)}${v.trial?' '+chip('info','A/B '+(v.arm||'')):''}<div class="sub">${esc(v.id)}${v.direction?'・'+esc(v.direction):''}</div>${v.remade_to?`<div class="sub">作り直した元（新しいほう：${esc(v.remade_to)}）</div>`:v.reason?`<div class="sub">理由：${esc(v.reason)}</div>`:''}</td>
     <td>${stChip(v.state)}${track(v)}</td>
     <td class="num">${t(v.published_at||v.scheduled_at)}<div class="sub">${v.published_at?'公開':v.scheduled_at?'予定':''}</div></td>
-    <td>${side(v.instagram,'instagram')}</td><td>${side(v.youtube,'youtube')}</td><td>${side(v.tiktok,'tiktok')}</td>
-    <td class="num">${n(m.views)}</td><td class="num">${n(m.views_24h)}</td><td class="num">${n(m.views_72h)}</td>
+    <td>${side(v.instagram,'instagram',m.views)}</td><td>${side(v.youtube,'youtube',(v.youtube||{}).views)}</td><td>${side(v.tiktok,'tiktok',(v.tiktok||{}).views)}</td>
+    <td class="num"><b>${n(total(v))}</b></td><td class="num">${n(m.views_24h)}</td><td class="num">${n(m.views_72h)}</td>
     <td class="num">${n(m.likes)}</td><td class="num">${n(m.saved)}</td><td class="num">${m.skip_rate==null?'—':m.skip_rate+'%'}</td><td class="num">${m.avg_watch_s==null?'—':m.avg_watch_s+'秒'}</td>
   </tr>`}).join('');
   return `<div class="filters">
     <select id="f-st"><option value="">すべての段階</option>${states.map(s=>`<option value="${esc(s)}" ${vf.st===s?'selected':''}>${esc(PH[s]||s)}（${all.filter(v=>v.state===s).length}）</option>`).join('')}</select>
-    <select id="f-sort">${[['date','新しい順'],['views','再生が多い順'],['v72','72時間の再生順'],['phase','段階順']].map(([k,l])=>`<option value="${k}" ${vf.sort===k?'selected':''}>${l}</option>`).join('')}</select>
+    <select id="f-sort">${[['date','新しい順'],['views','再生（合計）が多い順'],['v72','72時間の再生順'],['phase','段階順']].map(([k,l])=>`<option value="${k}" ${vf.sort===k?'selected':''}>${l}</option>`).join('')}</select>
     <input type="search" id="f-q" placeholder="タイトル・IDで探す" value="${esc(vf.q)}">
   </div>
   ${remade.length?`<p class="sub" style="margin:0 0 8px">${vf.old?`作り直した元の ${remade.length}本も出しています。`:`作り直した元の ${remade.length}本は隠しています（新しい id で作り直したので、出ません）。`} <button class="more" id="f-old">${vf.old?'隠す':'表示する'}</button></p>`:''}
   <div class="legend">段階：${D.phases.map(p=>PH[p]).join(' → ')}（棒が右まで伸びるほど先へ進んでいる）</div>
   <p class="count">${list.length}本</p>
   <div class="tablewrap"><table>
-    <thead><tr><th>動画</th><th>段階</th><th class="num">日時</th><th>Instagram</th><th>YouTube</th><th>TikTok</th><th class="num">再生（今）</th><th class="num">24時間</th><th class="num">72時間</th><th class="num">いいね</th><th class="num">保存</th><th class="num">スキップ</th><th class="num">平均視聴</th></tr></thead>
+    <thead><tr><th>動画</th><th>段階</th><th class="num">日時</th><th>Instagram</th><th>YouTube</th><th>TikTok</th><th class="num">再生の合計</th><th class="num">IG 24時間</th><th class="num">IG 72時間</th><th class="num">いいね</th><th class="num">保存</th><th class="num">スキップ</th><th class="num">平均視聴</th></tr></thead>
     <tbody>${rows||'<tr><td colspan="13" class="empty">当てはまる動画はありません</td></tr>'}</tbody>
   </table></div>`;
 }
@@ -341,13 +355,14 @@ function analysis(a){
   const mtop=Math.max(1,...top.map(val));
   return `<div class="sub" style="margin-bottom:8px">集計 ${t(A.updated_at)}</div>
     <div class="akpi" style="margin-top:0">
-      <div class="stat"><div class="v">${n(k.views_7d)}</div><div class="k">7日の再生${ch!=null?`（前の7日比 ${ch>0?'+':''}${ch}%）`:''}</div></div>
+      <div class="stat"><div class="v">${n(k.views_7d)}</div><div class="k">7日の再生（Instagram）${ch!=null?`（前の7日比 ${ch>0?'+':''}${ch}%）`:''}</div></div>
       <div class="stat"><div class="v">${n(k.views_28d)}</div><div class="k">28日の再生</div></div>
       <div class="stat"><div class="v">${n(k.views_48h)}</div><div class="k">直近48時間</div></div>
       <div class="stat"><div class="v">${k.nonfollower_share==null?'—':Math.round(k.nonfollower_share*100)+'%'}</div><div class="k">フォロワー以外の再生</div></div>
       <div class="stat"><div class="v">${n(a.median_views_72h)}</div><div class="k">72時間の再生の中央値</div></div>
     </div>
-    ${A.daily.length?`<section class="card"><h3 class="sec">日ごとの再生（Instagram）</h3>${lineChart(A.daily)}</section>`:''}
+    ${platTable(a)}
+    ${A.daily.length?`<section class="card" style="margin-top:16px"><h3 class="sec">日ごとの再生（Instagram）</h3>${lineChart(A.daily)}</section>`:''}
     ${pub.length?`<div class="two" style="margin-top:16px">
       <section class="card"><h3 class="sec">伸びた動画（72時間、なければ24時間）</h3><div class="bars">${top.map(v=>`<div class="bar" style="grid-template-columns:1fr 80px"><div><div style="font-size:12px">${v.instagram.url?`<a href="${esc(v.instagram.url)}" target="_blank" rel="noopener">${esc(v.title)}</a>`:esc(v.title)}</div><div class="t"><i style="width:${val(v)/mtop*100}%"></i></div></div><div class="n">${n(val(v))}</div></div>`).join('')}</div></section>
       <section class="card"><h3 class="sec">方向ごとの中央値</h3><div class="bars">${A.directions.map(d=>`<div class="bar"><span>${esc(d.name)}</span><div class="t"><i style="width:${d.median/mx*100}%"></i></div><span class="n">${n(Math.round(d.median))}（${d.n}本）</span></div>`).join('')}</div></section>
