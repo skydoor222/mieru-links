@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>リール工房 管理</title>
+<link rel="icon" href="app/icon.svg" type="image/svg+xml">
+<link rel="icon" href="app/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="app/apple-touch-icon.png">
+<link rel="manifest" href="app/manifest.webmanifest">
+<meta name="theme-color" content="#8b3dff">
+<meta name="apple-mobile-web-app-title" content="リール工房">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 :root{
   --bg:#f6f7f9;--surface:#fff;--ink:#16181d;--ink2:#4a505c;--muted:#7a8190;--line:#e3e6eb;
@@ -145,12 +152,26 @@ h4.grp{margin:14px 0 6px;font-size:13px;color:var(--muted)}
 .vw{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink2);margin-top:2px}
 .pv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 .pv .stat{padding:8px 10px}.pv .v{font-size:16px}
+header h1{display:flex;align-items:center;gap:8px}
+header .logo{width:26px;height:26px;border-radius:7px;display:block}
+.olinks{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+h2 .olinks,td .olinks{margin-top:0}
+td .olinks{margin-top:6px}
+a.olink{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;text-decoration:none;line-height:1}
+a.olink svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+a.olink svg .f{fill:currentColor;stroke:none}
+a.olink.sm{padding:4px;border-radius:8px}
+a.olink.sm svg{width:14px;height:14px}
+a.olink.instagram{background:linear-gradient(45deg,#f9a12e,#e1306c 55%,#8a3ab9)}
+a.olink.youtube{background:#e62117}
+a.olink.tiktok{background:#111;box-shadow:inset 0 0 0 1px #444}
+a.olink:hover{filter:brightness(1.1)}
 </style>
 </head>
 <body>
 <header>
   <button class="burger" id="burger" aria-label="メニュー"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button>
-  <h1>リール工房 管理</h1><span class="upd" id="upd"></span>
+  <h1><img src="app/icon.svg" alt="" class="logo">リール工房 管理</h1><span class="upd" id="upd"></span>
 </header>
 <div class="layout">
   <aside id="side"></aside><div class="scrim" id="scrim"></div>
@@ -190,6 +211,11 @@ function platViews(a){const B=a.by_platform||{};return `<div class="pv">${PL.map
 function platTable(a){const B=a.by_platform||{};return `<section class="card" style="margin-top:16px"><h3 class="sec">媒体ごとの再生</h3><div class="tablewrap"><table class="cs"><thead><tr><th>媒体</th><th>状態</th><th class="num">出した本数</th><th class="num">再生の合計</th><th class="num">72時間の中央値</th></tr></thead><tbody>${PL.map(([k,l])=>{const b=B[k]||{},c=(a.channels||{})[k];const off=c&&c.stage==='off';
   return `<tr><td><b>${l}</b></td><td>${off?chip('off','使わない'):b.connected?chCell(c):chip('off','未接続')+(c?` <span class="sub">${esc(c.label||'')}</span>`:'')}</td><td class="num">${off?'—':n(b.posts)}</td><td class="num">${off?'—':n(b.views)}</td><td class="num">${off?'—':n(b.median_72h==null?null:Math.round(b.median_72h))}</td></tr>`}).join('')}</tbody></table></div>
   <p class="sub" style="margin:8px 0 0">YouTube・TikTok は Instagram に出たあと自動で出した分（Actions が取る24時間・72時間の数字のうち新しいほう）。長尺（YouTube 横長）はまだ公開していません。</p></section>`}
+const SVG={instagram:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" class="f"/></svg>',
+  youtube:'<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="M10 9l5 3-5 3z" class="f"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/></svg>'};
+function openLinks(a,small){const L=a.links||{};const ks=['instagram','youtube','tiktok'].filter(k=>L[k]);if(!ks.length)return '';
+  return `<span class="olinks">${ks.map(k=>`<a class="olink ${k}${small?' sm':''}" href="${esc(L[k])}" target="_blank" rel="noopener" title="${SVC[k]||k} を開く（スマホはアプリが開きます）">${SVG[k]}${small?'':`<span>${SVC[k]||k}</span>`}</a>`).join('')}</span>`}
 function stats(a){
   return `<div class="stats">
     <div class="stat"><div class="v">${n(a.analysis.kpi.views_7d)}</div><div class="k">7日の再生（IG）</div></div>
@@ -213,7 +239,7 @@ function chCell(c){if(!c)return '—';if(c.stage==='off')return chip('off','使�
   return `${chip(CST[c.stage],c.label)}${bar}${who}`}
 function statusTable(list){
   return `<div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>Instagram</th><th>YouTube</th><th>TikTok</th><th>Facebook ページ</th></tr></thead><tbody>${list.map(a=>`<tr>
-    <td><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span><b>${esc(a.name)}</b></a><div class="sub">${a.handle?'@'+esc(a.handle):''}</div></td>
+    <td><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span><b>${esc(a.name)}</b></a>${openLinks(a,true)}<div class="sub">${a.handle?'@'+esc(a.handle):''}</div></td>
     ${['instagram','youtube','tiktok','facebook'].map(k=>`<td>${(a.channels||{})[k]?chCell(a.channels[k]):'<span class="sub">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
 function ownerTodo(){
   const L=[];D.accounts.forEach(a=>Object.entries(a.channels||{}).forEach(([k,c])=>{if((c.who||'').startsWith('持ち主'))L.push(`${esc(a.name)}：${SVC4[k]}（${esc(c.label)}）`)}));
@@ -229,7 +255,7 @@ function home(){
   ${(()=>{const L=D.accounts.flatMap(a=>(a.longform||[]).map(x=>({...x,acc:a})));return L.length?`<h3 class="sec" style="margin-top:24px">長尺（ショート1本⇔長尺1本）</h3><div class="tablewrap"><table class="cs"><thead><tr><th>アカウント</th><th>長尺</th><th>状態</th><th>足した根拠</th></tr></thead><tbody>${L.map(x=>`<tr><td><a href="${href(x.acc.slug)}">${esc(x.acc.name)}</a></td><td>${lfPlay(x)}${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`:esc(x.title)}<div class="sub">${esc(x.id)}</div></td><td>${chip(x.url?'good':'warn',x.state||'試作')}</td><td class="sub">${esc((x.note||'').replace('長尺で足した根拠：',''))}</td></tr>`).join('')}</tbody></table></div>`:''})()}
   ${(()=>{const L=D.accounts.flatMap(a=>(a.improve||[]).map(e=>({...e,acc:a}))).sort((x,y)=>(y.at||'').localeCompare(x.at||'')).slice(0,8);return L.length?`<h3 class="sec" style="margin-top:24px">最近の改善</h3><div class="card">${improveLog(L,true).replace(/<div class="filters">[\s\S]*?<\/div>\s*<p class="sub"[^>]*>[^<]*<\/p><p class="count">[^<]*<\/p>/,'')}<p class="sub" style="margin:4px 0 0">各アカウントの「改善ログ」タブに全部あります。</p></div>`:''})()}
   <h3 class="sec" style="margin-top:24px">アカウント</h3>${byGroup(D.accounts).map(([g,AL])=>`<h4 class="grp">${esc(g)}</h4><div class="grid">${AL.map(a=>{const L=a.launch||{};return `<section class="card">
-    <h2><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span>${esc(a.name)}</a></h2>
+    <h2 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><a href="${href(a.slug)}" class="who"><span class="av sm">${av(a)}</span>${esc(a.name)}</a>${openLinks(a,true)}</h2>
     <div class="sub">${a.handle?'@'+esc(a.handle):''} ${stChips(a)} ${L.total?`立ち上げ ${L.done}/${L.total}`:''}</div>
     <div class="plats">${plats(a)}</div>${stats(a)}${platViews(a)}${phases(a)}
     ${a.problem?`<div class="problem">${chip('bad','要対応')} ${esc(a.problem)}</div>`:''}
@@ -253,7 +279,7 @@ function plannedPage(p){
 function accountPage(a){
   const tabs=[['overview','概要'],['videos',`動画（${a.videos.filter(v=>!v.remade_to).length}）`],['analysis','分析'],['improve',`改善ログ（${(a.improve||[]).length}）`]];
   const body=route.tab==='videos'?videos(a):route.tab==='analysis'?analysis(a):route.tab==='improve'?improveLog(a.improve||[],false):overview(a);
-  return `<div class="ahead"><div class="av">${av(a)}</div><div><h2>${esc(a.name)}</h2>
+  return `<div class="ahead"><div class="av">${av(a)}</div><div><h2>${esc(a.name)}</h2>${openLinks(a)}
     <div class="sub">${a.handle?`<a href="https://www.instagram.com/${esc(a.handle)}/" target="_blank" rel="noopener">@${esc(a.handle)}</a>`:''} ${stChips(a)}</div></div></div>
   <nav class="sub" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${route.tab===k}">${l}</button>`).join('')}</nav>${body}`;
 }
