@@ -166,6 +166,16 @@ a.olink.instagram{background:linear-gradient(45deg,#f9a12e,#e1306c 55%,#8a3ab9)}
 a.olink.youtube{background:#e62117}
 a.olink.tiktok{background:#111;box-shadow:inset 0 0 0 1px #444}
 a.olink:hover{filter:brightness(1.1)}
+.ideas{display:grid;gap:16px;max-width:860px}
+.idea dl{display:grid;grid-template-columns:7em minmax(0,1fr);gap:4px 12px;margin:10px 0 0;font-size:13px}
+.idea dt{color:var(--muted);font-weight:600}
+.idea dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.idea .what{color:var(--ink2);font-size:13px;margin:8px 0 0}
+.idea details{margin-top:10px;font-size:13px}
+.idea summary{cursor:pointer;color:var(--accent)}
+.ifilter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
+.ifilter button{font:inherit;font-size:12px;padding:3px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.ifilter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 </style>
 </head>
 <body>
@@ -182,7 +192,7 @@ const PH={idea:'案',approved:'承認',rendered:'描画',passed:'合格',queued:
 const SVC={instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'};
 const PSTATE={ok:['good','動いている'],ready:['warn','準備中'],private:['warn','非公開で出る'],connect:['warn','つなぐ前'],off:['off','使わない'],error:['bad','エラー']};
 const VSTATE={done:['good','公開'],publishing:['info','公開中'],waiting:['warn','待ち'],failed:['bad','失敗'],none:['off','—'],off:['off','—']};
-let D=null,route={slug:'',tab:'overview'},vf={st:'',q:'',sort:'date',old:''};
+let D=null,IDEAS=null,ideaF='',route={slug:'',tab:'overview',page:''},vf={st:'',q:'',sort:'date',old:''};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=x=>x==null?'—':Number(x).toLocaleString('ja-JP');
 const t=s=>{if(!s)return'—';const m=s.match(/(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d)/);return m?`${+m[2]}/${+m[3]} ${m[4]}`:s};
@@ -196,7 +206,8 @@ const health=a=>a.problem?'var(--bad)':a.status!=='active'?'var(--off)':(a.platf
 const href=(slug,tab)=>'#/'+(slug?encodeURIComponent(slug)+(tab&&tab!=='overview'?'/'+tab:''):'');
 
 function sidebar(){
-  return `<a href="${href('')}" class="${route.slug?'':'on'}"><span class="av">全</span><span><span class="nm">全体</span><span class="hd">${D.accounts.length}アカウント</span></span></a>
+  return `<a href="${href('')}" class="${route.slug||route.page?'':'on'}"><span class="av">全</span><span><span class="nm">全体</span><span class="hd">${D.accounts.length}アカウント</span></span></a>
+  <a href="#/ideas" class="${route.page==='ideas'?'on':''}"><span class="av">案</span><span><span class="nm">アイデア帳</span><span class="hd">${IDEAS?IDEAS.length+'件':'「こういうの作れる？」の動画'}</span></span></a>
   ${byGroup(D.accounts).map(([g,L])=>`<div class="lbl">${esc(g)}</div>`+L.map(a=>`<a href="${href(a.slug,route.tab)}" class="${route.slug===a.slug?'on':''}"><span class="av">${av(a)}</span><span><span class="nm">${esc(a.name)}</span><span class="hd">${a.handle?'@'+esc(a.handle):''}</span></span><span class="dot" style="background:${health(a)}" title="${a.problem?'要対応':a.status==='active'?'稼働中':'一時停止'}"></span></a>`).join('')).join('')}
   ${(D.planned||[]).length?`<div class="lbl">準備中（これから作る）</div>${D.planned.map(p=>`<a href="${href(p.slug)}" class="${route.slug===p.slug?'on':''}"><span class="av">${esc(p.name.charAt(0))}</span><span><span class="nm">${esc(p.name)}</span><span class="hd">${p.platforms.map(k=>SVC[k]).join('・')}</span></span><span class="dot" style="background:var(--off)" title="準備中"></span></a>`).join('')}`:''}`;
 }
@@ -396,18 +407,41 @@ function analysis(a){
     ${A.report_md?`<section class="card" style="margin-top:16px"><details><summary>くわしい分析（機械の集計）</summary><div class="md">${md(A.report_md)}</div></details></section>`:''}`;
 }
 
+const IKIND={made:['good','試作あり'],analysis:['info','分析のみ']},ISTAT={idea:['off','ストック'],wip:['warn','制作中'],done:['good','完成']};
+function ilink(u,l){return u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(l||u)}</a>`:''}
+function ideasPage(){
+  if(!IDEAS)return '<div class="empty">アイデア帳を読み込んでいます…</div>';
+  const L=IDEAS.filter(x=>!ideaF||x.kind===ideaF).slice().sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+  const made=IDEAS.filter(x=>x.kind==='made').length;
+  const card=x=>{const k=IKIND[x.kind]||IKIND.made,st=ISTAT[x.status]||ISTAT.idea,r=[];
+    if(x.reference_url)r.push(['参考',ilink(x.reference_url)]);
+    if(x.kind!=='analysis'){r.push(['試作',x.prototype_url?ilink(x.prototype_url,x.prototype_label||'試作を見る'):'<span class="sub">まだ</span>']);
+      r.push(['完成版',x.final_url?ilink(x.final_url,'完成版を見る'):'<span style="color:var(--warn)">未定（完成したらここに入ります）</span>'])}
+    if(x.how)r.push(['作り方',esc(x.how)]);
+    if(x.doc_url)r.push(['分析',ilink(x.doc_url,x.doc_label||'分析を開く')]);
+    if(x.note)r.push(['メモ',esc(x.note)]);
+    return `<section class="card idea"><div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;justify-content:space-between"><h2>${esc(x.title)}</h2><span>${chip(k[0],k[1])} ${chip(st[0],st[1])}</span></div>
+      ${x.what?`<p class="what">${esc(x.what)}</p>`:''}<dl>${r.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
+      ${x.recipe_md?`<details><summary>手順書を開く</summary><div class="md">${md(x.recipe_md)}</div></details>`:''}
+      <div class="sub" style="margin-top:8px">追加 ${t(x.created_at)}${x.updated_at&&x.updated_at!==x.created_at?'・更新 '+t(x.updated_at):''}</div></section>`};
+  return `<h2 style="font-size:18px;margin:0 0 4px">アイデア帳</h2>
+  <p class="sub" style="margin:0;max-width:62ch">「こういうの作れる？」から生まれた動画のアイデアです。試作まで作ったものと、分析だけのものを分けています。足すときはチャットで「工房にストックして」と送ってください。</p>
+  <div class="ifilter" role="group" aria-label="種類で絞る">${[['','すべて '+IDEAS.length],['made','試作あり '+made],['analysis','分析のみ '+(IDEAS.length-made)]].map(([k,l])=>`<button type="button" data-if="${k}" aria-pressed="${ideaF===k}">${l}</button>`).join('')}</div>
+  <div class="ideas">${L.map(card).join('')||'<div class="empty">まだアイデアはありません。</div>'}</div>`;
+}
 function parse(){
   const p=location.hash.replace(/^#\/?/,'').split('/').map(decodeURIComponent);
   const a=D&&(D.accounts.find(x=>x.slug===p[0])||(D.planned||[]).find(x=>x.slug===p[0]));
-  route={slug:a?a.slug:'',tab:['videos','analysis','improve'].includes(p[1])?p[1]:'overview'};
+  route={page:!a&&p[0]==='ideas'?'ideas':'',slug:a?a.slug:'',tab:['videos','analysis','improve'].includes(p[1])?p[1]:'overview'};
 }
 function render(){
   parse();
   const a=D.accounts.find(x=>x.slug===route.slug),pl=(D.planned||[]).find(x=>x.slug===route.slug);
   document.getElementById('side').innerHTML=sidebar();
   const m=document.getElementById('main');
-  m.innerHTML=a?accountPage(a):pl?plannedPage(pl):home();
-  document.title=((a||pl)?(a||pl).name+' | ':'')+'リール工房 管理';
+  m.innerHTML=route.page==='ideas'?ideasPage():a?accountPage(a):pl?plannedPage(pl):home();
+  document.title=(route.page==='ideas'?'アイデア帳 | ':(a||pl)?(a||pl).name+' | ':'')+'リール工房 管理';
+  m.querySelectorAll('[data-if]').forEach(b=>b.onclick=()=>{ideaF=b.dataset.if;render()});
   m.querySelectorAll('nav.sub button').forEach(b=>b.onclick=()=>{location.hash=href(a.slug,b.dataset.tab)});
   const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
   m.querySelectorAll('button.play').forEach(b=>b.onclick=()=>openPlayer(b));
@@ -427,6 +461,7 @@ const wide=()=>matchMedia('(min-width:901px)').matches;
 document.getElementById('burger').onclick=()=>{if(wide())document.body.classList.toggle('noside');else document.body.classList.toggle('open')};
 document.getElementById('scrim').onclick=()=>document.body.classList.remove('open');
 window.addEventListener('hashchange',()=>{const prev=route.slug;parse();if(prev!==route.slug)vf={st:'',q:'',sort:'date',old:''};document.body.classList.remove('open');render();window.scrollTo(0,0)});
+fetch('ideas.json?'+Date.now()).then(r=>r.json()).then(d=>{IDEAS=d.items||[];if(D)render()}).catch(()=>{IDEAS=[]});
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;document.getElementById('upd').textContent='更新 '+new Date(d.generated_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});render()})
   .catch(()=>{document.getElementById('main').innerHTML='<div class="empty">データを読めませんでした。少し待って開き直してください。</div>'});
 </script>
