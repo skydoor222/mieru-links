@@ -173,6 +173,15 @@ a.olink:hover{filter:brightness(1.1)}
 .idea .what{color:var(--ink2);font-size:13px;margin:8px 0 0}
 .idea details{margin-top:10px;font-size:13px}
 .idea summary{cursor:pointer;color:var(--accent)}
+.ipv{display:grid;grid-template-columns:220px minmax(0,1fr);gap:14px;margin-top:12px;align-items:start}
+@media (max-width:640px){.ipv{grid-template-columns:minmax(0,1fr)}}
+.ipv video{width:100%;max-width:260px;aspect-ratio:9/16;background:#000;border-radius:10px;display:block}
+.scenes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;min-width:0}
+.scene{border:0;padding:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;display:grid;gap:3px}
+.scene img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:8px;display:block;outline:2px solid transparent}
+.scene:hover img,.scene.now img{outline-color:var(--accent)}
+.scene .st{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.scene .sx{font-size:11.5px;line-height:1.4;color:var(--ink2)}
 .ifilter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
 .ifilter button{font:inherit;font-size:12px;padding:3px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .ifilter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
@@ -409,6 +418,12 @@ function analysis(a){
 
 const IKIND={made:['good','試作あり'],analysis:['info','分析のみ']},ISTAT={idea:['off','ストック'],wip:['warn','制作中'],done:['good','完成']};
 function ilink(u,l){return u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(l||u)}</a>`:''}
+function preview(x){
+  const v=x.final_url||x.prototype_url;if(!v&&!(x.scenes||[]).length)return '';
+  const sc=(x.scenes||[]).map((c,i)=>`<button type="button" class="scene" data-seek="${c.t??''}" data-vid="v-${esc(x.id)}"><img src="${esc(c.img)}" alt="${esc(c.text)}" loading="lazy"><span class="st">${c.t!=null?Math.floor(c.t)+'秒':''}</span><span class="sx">${esc(c.text)}</span></button>`).join('');
+  return `<div class="ipv">${v?`<video id="v-${esc(x.id)}" controls playsinline preload="metadata" src="${esc(v)}"${x.poster_url?` poster="${esc(x.poster_url)}"`:''}></video>`:''}
+    ${sc?`<div><div class="sub" style="margin-bottom:6px">展開（${(x.scenes||[]).length}カット。押すとその場面から再生）</div><div class="scenes">${sc}</div></div>`:''}</div>`;
+}
 function ideasPage(){
   if(!IDEAS)return '<div class="empty">アイデア帳を読み込んでいます…</div>';
   const L=IDEAS.filter(x=>!ideaF||x.kind===ideaF).slice().sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
@@ -421,7 +436,7 @@ function ideasPage(){
     if(x.doc_url)r.push(['分析',ilink(x.doc_url,x.doc_label||'分析を開く')]);
     if(x.note)r.push(['メモ',esc(x.note)]);
     return `<section class="card idea"><div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;justify-content:space-between"><h2>${esc(x.title)}</h2><span>${chip(k[0],k[1])} ${chip(st[0],st[1])}</span></div>
-      ${x.what?`<p class="what">${esc(x.what)}</p>`:''}<dl>${r.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
+      ${x.what?`<p class="what">${esc(x.what)}</p>`:''}${preview(x)}<dl>${r.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
       ${x.recipe_md?`<details><summary>手順書を開く</summary><div class="md">${md(x.recipe_md)}</div></details>`:''}
       <div class="sub" style="margin-top:8px">追加 ${t(x.created_at)}${x.updated_at&&x.updated_at!==x.created_at?'・更新 '+t(x.updated_at):''}</div></section>`};
   return `<h2 style="font-size:18px;margin:0 0 4px">アイデア帳</h2>
@@ -441,6 +456,7 @@ function render(){
   const m=document.getElementById('main');
   m.innerHTML=route.page==='ideas'?ideasPage():a?accountPage(a):pl?plannedPage(pl):home();
   document.title=(route.page==='ideas'?'アイデア帳 | ':(a||pl)?(a||pl).name+' | ':'')+'リール工房 管理';
+  m.querySelectorAll('.scene[data-seek]').forEach(b=>b.onclick=()=>{const v=document.getElementById(b.dataset.vid),t=parseFloat(b.dataset.seek);if(!v||isNaN(t))return;const go=()=>{v.currentTime=t;v.play().catch(()=>{})};if(v.readyState<1){v.addEventListener('loadedmetadata',go,{once:true});v.load()}else go();b.parentNode.querySelectorAll('.scene').forEach(o=>o.classList.toggle('now',o===b))});
   m.querySelectorAll('[data-if]').forEach(b=>b.onclick=()=>{ideaF=b.dataset.if;render()});
   m.querySelectorAll('nav.sub button').forEach(b=>b.onclick=()=>{location.hash=href(a.slug,b.dataset.tab)});
   const on=(id,k,ev='change')=>{const e=document.getElementById(id);if(e)e[`on${ev}`]=()=>{vf[k]=e.value;const p=e.selectionStart;render();if(ev==='input'){const f=document.getElementById(id);f.focus();f.setSelectionRange(p,p)}}};
