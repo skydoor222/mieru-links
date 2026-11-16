@@ -182,6 +182,16 @@ a.olink:hover{filter:brightness(1.1)}
 .scene:hover img,.scene.now img{outline-color:var(--accent)}
 .scene .st{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .scene .sx{font-size:11.5px;line-height:1.4;color:var(--ink2)}
+.src{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;margin-top:12px;align-items:start}
+@media (max-width:700px){.src{grid-template-columns:minmax(0,1fr)}}
+.src iframe{width:100%;border:0;border-radius:10px;background:var(--bg);display:block}
+.src iframe.ig{aspect-ratio:9/16;min-height:560px;max-height:720px}
+.src iframe.yt{aspect-ratio:16/9}
+.src ol{margin:0;padding-left:20px;font-size:13px;display:grid;gap:4px}
+.ytf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ytf figure{margin:0;display:grid;gap:2px}.ytf img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;display:block}
+.ytf figcaption{font-size:11px;color:var(--muted)}
+.idea h4{font-size:13px;margin:16px 0 0;color:var(--ink)}
 .ifilter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
 .ifilter button{font:inherit;font-size:12px;padding:3px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .ifilter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
@@ -418,10 +428,21 @@ function analysis(a){
 
 const IKIND={made:['good','試作あり'],analysis:['info','分析のみ']},ISTAT={idea:['off','ストック'],wip:['warn','制作中'],done:['good','完成']};
 function ilink(u,l){return u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(l||u)}</a>`:''}
+function srcEmbed(x){
+  const u=x.reference_url||'';let m;
+  if((m=u.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/)))return {kind:'ig',html:`<iframe class="ig" src="https://www.instagram.com/reel/${esc(m[1])}/embed/" loading="lazy" allowfullscreen title="元動画（Instagram）"></iframe>`};
+  if((m=u.match(/(?:youtu\.be\/|[?&]v=|\/shorts\/)([A-Za-z0-9_-]{11})/)))return {kind:'yt',id:m[1],html:`<iframe class="yt" src="https://www.youtube.com/embed/${esc(m[1])}" loading="lazy" allowfullscreen title="元動画（YouTube）" allow="encrypted-media; picture-in-picture"></iframe>`};
+  return null;
+}
+function source(x){
+  const e=srcEmbed(x),flow=x.source_flow||[];if(!e&&!flow.length)return '';
+  const frames=e&&e.kind==='yt'?`<div class="ytf">${[['0','サムネイル'],['1','序盤（約1/4）'],['2','中盤（約1/2）'],['3','終盤（約3/4）']].map(([n,l])=>`<figure><img src="https://i.ytimg.com/vi/${esc(e.id)}/${n==='0'?'hqdefault':'hq'+n}.jpg" alt="${l}" loading="lazy"><figcaption>${l}</figcaption></figure>`).join('')}</div>`:'';
+  return `<h4>元動画</h4><div class="src">${e?`<div>${e.html}</div>`:''}<div>${flow.length?`<div class="sub" style="margin-bottom:6px">展開</div><ol>${flow.map(f=>`<li>${esc(f)}</li>`).join('')}</ol>`:''}${frames}</div></div>`;
+}
 function preview(x){
   const v=x.final_url||x.prototype_url;if(!v&&!(x.scenes||[]).length)return '';
   const sc=(x.scenes||[]).map((c,i)=>`<button type="button" class="scene" data-seek="${c.t??''}" data-vid="v-${esc(x.id)}"><img src="${esc(c.img)}" alt="${esc(c.text)}" loading="lazy"><span class="st">${c.t!=null?Math.floor(c.t)+'秒':''}</span><span class="sx">${esc(c.text)}</span></button>`).join('');
-  return `<div class="ipv">${v?`<video id="v-${esc(x.id)}" controls playsinline preload="metadata" src="${esc(v)}"${x.poster_url?` poster="${esc(x.poster_url)}"`:''}></video>`:''}
+  return `<h4>${x.final_url?'こちらで作った版':'試作'}</h4><div class="ipv">${v?`<video id="v-${esc(x.id)}" controls playsinline preload="metadata" src="${esc(v)}"${x.poster_url?` poster="${esc(x.poster_url)}"`:''}></video>`:''}
     ${sc?`<div><div class="sub" style="margin-bottom:6px">展開（${(x.scenes||[]).length}カット。押すとその場面から再生）</div><div class="scenes">${sc}</div></div>`:''}</div>`;
 }
 function ideasPage(){
@@ -436,7 +457,7 @@ function ideasPage(){
     if(x.doc_url)r.push(['分析',ilink(x.doc_url,x.doc_label||'分析を開く')]);
     if(x.note)r.push(['メモ',esc(x.note)]);
     return `<section class="card idea"><div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;justify-content:space-between"><h2>${esc(x.title)}</h2><span>${chip(k[0],k[1])} ${chip(st[0],st[1])}</span></div>
-      ${x.what?`<p class="what">${esc(x.what)}</p>`:''}${preview(x)}<dl>${r.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
+      ${x.what?`<p class="what">${esc(x.what)}</p>`:''}${source(x)}${preview(x)}<dl>${r.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
       ${x.recipe_md?`<details><summary>手順書を開く</summary><div class="md">${md(x.recipe_md)}</div></details>`:''}
       <div class="sub" style="margin-top:8px">追加 ${t(x.created_at)}${x.updated_at&&x.updated_at!==x.created_at?'・更新 '+t(x.updated_at):''}</div></section>`};
   return `<h2 style="font-size:18px;margin:0 0 4px">アイデア帳</h2>
